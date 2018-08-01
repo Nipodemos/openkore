@@ -23,7 +23,9 @@ use eventMacro::Automacro;
 use eventMacro::FileParser;
 
 sub between {
-	if ( $_[0] <= $_[1] && $_[1] <= $_[2] ) { return 1 }
+	if ( $_[0] <= $_[1] && $_[1] <= $_[2] ) {
+		return 1;
+	}
 	return 0;
 }
 
@@ -33,57 +35,46 @@ sub cmpr {
 	if ( !defined $first || !defined $cond || !defined $second ) {
 
 		# this produces a warning but that's what we want
-		error "cmpr: wrong # of arguments ($first) ($cond) ($second)\n",
-		  "eventMacro";
+		error "cmpr: wrong # of arguments ($first) ($cond) ($second)\n", "eventMacro";
 
-	}
-	elsif ( $first =~ /^\s*(-?[\d.]+)\s*\.{2}\s*(-?[\d.]+)\s*$/ ) {
+	} elsif ( $first =~ /^\s*(-?[\d.]+)\s*\.{2}\s*(-?[\d.]+)\s*$/ ) {
 		my ( $first1, $first2 ) = ( $1, $2 );
 		if ( $second =~ /^-?[\d.]+$/ ) {
 			if ( $cond eq "!=" ) {
 				return ( ( between( $first1, $second, $first2 ) ) ? 0 : 1 );
 
-			}
-			elsif ($cond eq "="
-				|| $cond eq "=="
-				|| $cond eq "=~"
-				|| $cond eq "~" )
+			} elsif ($cond eq "="
+				  || $cond eq "=="
+				  || $cond eq "=~"
+				  || $cond eq "~" )
 			{
 				return between( $first1, $second, $first2 );
 
 			}
 			else {
-				error
-				  "cmpr: Range operations must be of equality or inequality\n",
-				  "eventMacro";
+				error "cmpr: Range operations must be of equality or inequality\n", "eventMacro";
 			}
 		}
-		error "cmpr: wrong # of arguments ($first) ($cond) ($second)\n--> ($second) <-- maybe should be numeric?\n",
-		  "eventMacro";
+		error "cmpr: wrong # of arguments ($first) ($cond) ($second)\n--> ($second) <-- maybe should be numeric?\n", "eventMacro";
 
-	}
-	elsif ( $second =~ /^\s*(-?[\d.]+)\s*\.{2}\s*(-?[\d.]+)\s*$/ ) {
+	} elsif ( $second =~ /^\s*(-?[\d.]+)\s*\.{2}\s*(-?[\d.]+)\s*$/ ) {
 		my ( $second1, $second2 ) = ( $1, $2 );
 		if ( $first =~ /^-?[\d.]+$/ ) {
 			if ( $cond eq "!=" ) {
 				return ( ( between( $second1, $first, $second2 ) ) ? 0 : 1 );
 
-			}
-			elsif ($cond eq "="
-				|| $cond eq "=="
-				|| $cond eq "=~"
-				|| $cond eq "~" )
+			} elsif ($cond eq "="
+				  || $cond eq "=="
+				  || $cond eq "=~"
+				  || $cond eq "~" )
 			{
 				return between( $second1, $first, $second2 );
 
-			}
-			else {
-				error "cmpr: Range operations must be of equality or inequality\n",
-				  "eventMacro";
+			} else {
+				error "cmpr: Range operations must be of equality or inequality\n", "eventMacro";
 			}
 		}
-		error "cmpr: wrong # of arguments ($first) ($cond) ($second)\n--> ($first) <-- maybe should be numeric?\n",
-		  "eventMacro";
+		error "cmpr: wrong # of arguments ($first) ($cond) ($second)\n--> ($first) <-- maybe should be numeric?\n", "eventMacro";
 
 	}
 	elsif ( $first =~ /^-?[\d.]+$/ && $second =~ /^-?[\d.]+$/ ) {
@@ -176,8 +167,7 @@ sub getArgs {
 
 # gets word from message
 sub getWord {
-	my ( $message, $wordno ) =
-	  $_[0] =~ /^"(.*?)"\s*,\s?(\d+|\$[a-zA-Z][a-zA-Z\d]*)$/s;
+	my ( $message, $wordno ) = $_[0] =~ /^"(.*?)"\s*,\s?(\d+|\$[a-zA-Z][a-zA-Z\d]*)$/s;
 	my @words = split( /[ ,.:;\"\'!?\r\n]/, $message );
 	my $no = 1;
 	if ( $wordno =~ /^\$/ ) {
@@ -185,8 +175,11 @@ sub getWord {
 		return "" unless defined $val;
 		if ( $eventMacro->get_scalar_var($val) =~ /^[1-9][0-9]*$/ ) {
 			$wordno = $eventMacro->get_scalar_var($val);
+			
+		} else { 
+			return "";
+			
 		}
-		else { return "" }
 
 	}
 	foreach (@words) {
@@ -201,7 +194,7 @@ sub getWord {
 sub getConfig {
 	my ($arg1) = $_[0] =~ /^\s*(\w*\.*\w+)\s*$/;
 
-# Basic Support for "label" in blocks. Thanks to "piroJOKE" (from Commands.pm, sub cmdConf)
+	# Basic Support for "label" in blocks. Thanks to "piroJOKE" (from Commands.pm, sub cmdConf)
 	if ( $arg1 =~ /\./ ) {
 		$arg1 =~ s/\.+/\./;    # Filter Out Unnececary dot's
 		my ( $label, $param ) = split /\./, $arg1, 2; # Split the label form parameter
@@ -236,17 +229,17 @@ sub getQuestStatus {
 		my $quest = $questList->{$quest_id};
 		if ( !$quest || !$quest->{active} ) {
 			$result->{$quest_id} = 'inactive';
-		}
-		elsif ( $quest->{time} && $quest->{time} > time ) {
+			
+		} elsif ( $quest->{time} && $quest->{time} > time ) {
 			$result->{$quest_id} = 'incomplete';
-		}
-		elsif ( grep { $_->{goal} && $_->{count} < $_->{goal} } values %{ $quest->{missions} } ) {
+			
+		} elsif ( grep { $_->{goal} && $_->{count} < $_->{goal} } values %{ $quest->{missions} } ) {
 			$result->{$quest_id} = 'incomplete';
-		}
-		elsif ( grep { !$_->{goal} && $_->{count} == 0 } values %{ $quest->{missions} } ) {
+			
+		} elsif ( grep { !$_->{goal} && $_->{count} == 0 } values %{ $quest->{missions} } ) {
 			$result->{$quest_id} = 'incomplete';
-		}
-		else {
+			
+		} else {
 			$result->{$quest_id} = 'complete';
 		}
 	}
@@ -353,9 +346,7 @@ sub getInventoryTypeIDs {
 sub getItemIDs {
 	my ( $item, $pool ) = ( lc( $_[0] ), $_[1] );
 	return if !$pool->isReady;
-	my @ids =
-	  map { $_->{binID} }
-	  grep { $item eq lc $_->name || $item == $_->{nameID} } @$pool;
+	my @ids = map { $_->{binID} } grep { $item eq lc $_->name || $item == $_->{nameID} } @{ $pool };
 	push @ids, -1 if !@ids;
 	@ids;
 }
@@ -366,7 +357,9 @@ sub getItemIDs {
 sub getItemPrice {
 	my ( $itemIndex, $pool ) = ( $_[0], $_[1] );
 	my $price = -1;
-	if ( $$pool[$itemIndex] ) { $price = $$pool[$itemIndex]{price} }
+	if ( $$pool[$itemIndex] ) { 
+		$price = $$pool[$itemIndex]{price};
+	}
 	return $price;
 }
 
@@ -391,7 +384,9 @@ sub getSoldOut {
 	my $soldout = 0;
 	foreach my $aitem (@::articles) {
 		next unless $aitem;
-		if ( $aitem->{quantity} == 0 ) { $soldout++ }
+		if ( $aitem->{quantity} == 0 ) { 
+			$soldout++;
+		}
 	}
 	return $soldout;
 }
