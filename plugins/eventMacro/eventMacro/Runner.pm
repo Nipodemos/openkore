@@ -5,6 +5,8 @@ use strict;
 require Exporter;
 our @ISA = qw(Exporter);
 
+use Data::Dumper;
+
 use Time::HiRes qw( &time );
 use Globals;
 use AI;
@@ -429,7 +431,7 @@ sub scanBlocks {
 	my $block_starts = [];
 	
 	for (my $line = 0; $line < @{$script}; $line++) {
-		if ($script->[$line] =~ /^(if|switch|while)\s+\(.*\)\s+{$/) {
+		if ($script->[$line] =~ /^(if|switch|while|foreach)\s+(?:$general_variable_qr)?\s*\(.*\)\s+{$/) {
 			push @$block_starts, { type => $1, start => $line };
 		} elsif ($script->[$line] eq '}') {
 			my $block = pop @$block_starts;
@@ -438,6 +440,7 @@ sub scanBlocks {
 			$blocks->{start_to_end}{$block->{start}} = $block;
 		}
 	}
+	warning Dumper($blocks);
 	$blocks;
 }
 
@@ -615,7 +618,7 @@ sub define_next_valid_command {
 		}
 		
 		######################################
-		# While statement: while (foo <= bar) as label
+		# While statement: while (foo <= bar) {
 		######################################
 		if ($self->{current_line} =~ /^while\s/) {
 			my ($condition_text) = $self->{current_line} =~ /^while\s+\(\s*(.*)\s*\)\s+{$/;
@@ -635,6 +638,104 @@ sub define_next_valid_command {
 			}
 			$self->next_line;
 			
+		######################################
+		# foreach statement: foreach $var (@array) {
+		######################################
+		} elsif ($self->{current_line} =~ /^foreach\s/) {
+			my ($foreachVar, $arrayVar) = $self->{current_line} =~ /^foreach\s+($general_wider_variable_qr)\s+\(\s*($array_variable_qr)\s*\)\s+{$/;
+			
+			debug "[eventMacro] Script is the start of a foreach 'block'.\n", "eventMacro", 3;
+			#defining foreach_var (the variable that holds the array value on each loop)
+			if (!$self->{foreach_block}{$self->line_index}{var}) {
+				my $var = find_variable($foreachVar);
+				if ($var) {
+					$self->{foreach_block}{$self->line_index}{var} = $var;
+				} else {
+					$self->error("foreach block must have a variable before parentheses");
+					undef $self->{foreach_block}{$self->line_index};
+					return;
+				}
+			}
+			
+			#defining foreach_array (the array that the code is going to loop)
+			if (!$self->{foreach_block}{$self->line_index}{array}) {
+				my $var = find_variable($arrayVar);
+				if ($var->{type} eq 'array') {
+					$self->{foreach_block}{$self->line_index}{array} = $var;
+				} else {
+					$self->error("foreach block must have an array inside parentheses");
+					undef $self->{foreach_block}{$self->line_index};
+					return;
+				}
+			}
+			warning "loop index of current foreach BEFORE: '" . $self->{foreach_block}{$self->line_index}{loop_index} . "'\n";
+			if (exists $self->{foreach_block}{$self->line_index}{loop_index}) {
+				$self->{foreach_block}{$self->line_index}{loop_index}++;
+				warning "incrementing foreach loop index\n";
+			} else {
+				$self->{foreach_block}{$self->line_index}{loop_index} = 0;
+				warning "looks like loop index is not defined yet. defining it\n";
+			}
+			warning "loop index of current foreach AFTER: '" . $self->{foreach_block}{$self->line_index}{loop_index} . "'\n";
+			
+			if ($eventMacro->get_array_size($self->{foreach_block}{$self->line_index}{array}{real_name}) < 1) {
+				$self->error("Array is not defined or do not have elements in it");
+				undef $self->{foreach_block}{$self->line_index};
+			}
+			
+			if ($self->{foreach_block}{$self->line_index}{loop_index} >= $eventMacro->get_array_size($self->{foreach_block}{$self->line_index}{array}{real_name})) {
+				debug "[eventMacro] Foreach block done, cleaning block.\n", "eventMacro", 3;
+				undef $self->{foreach_block}{$self->line_index};
+				
+				my $block_count = 1;
+				CHECK_IF: while ($block_count > 0) {
+				
+					$self->next_line;
+					$self->define_current_line;
+					
+					if ($self->{finished}) {
+						$self->{finished} = 0;
+						$self->error("All blocks must be closed before the end of the macro)");
+						return;
+					}
+					
+					#Start of another if/switch/case/while block
+					if ( $self->{current_line} =~ /^(if|switch|case|while|else|foreach).*{$/ ) {
+						$block_count++;
+						
+					#End of an if block or start of else block
+					} elsif ($self->{current_line} eq '}') {
+						$block_count--;
+						
+					}
+					
+					debug "[eventMacro] Cleaning [sub]line '".$self->{current_line}."' inside 'if' block.\n", "eventMacro", 3;
+				}
+			} else {
+				debug("Defining foreach var\n", 'eventMacro', 3);
+				debug("loop index: $self->{foreach_block}{$self->line_index}{loop_index}\n");
+				my $currentArrayValue = $eventMacro->get_var(
+					'accessed_array',                  #type of variable
+					$self->{foreach_block}{$self->line_index}{array}{real_name}, #name of variable
+					$self->{foreach_block}{$self->line_index}{loop_index},       #complement
+				);
+				
+				$eventMacro->set_var(
+					$self->{foreach_block}{$self->line_index}{var}{type},      #type of variable
+					$self->{foreach_block}{$self->line_index}{var}{real_name}, #name of variable
+					$currentArrayValue,              #new value
+					undef,                           #check callbacks
+					$self->{foreach_block}{$self->line_index}{var}{complement} #complement of variable (accessed array/hash)
+				);
+				debug ("new value: " . $eventMacro->get_var(
+					$self->{foreach_block}{$self->line_index}{var}{type},
+					$self->{foreach_block}{$self->line_index}{var}{real_name}, #name of variable
+					$self->{foreach_block}{$self->line_index}{var}{complement}
+				) . "\n");
+			}
+			
+			
+			$self->next_line;
 		######################################
 		# Postfix 'if'
 		######################################
@@ -696,7 +797,7 @@ sub define_next_valid_command {
 						}
 						
 						#Start of another if/switch/case/while block
-						if ( $self->{current_line} =~ /^(if|switch|case|while|else).*{$/ ) {
+						if ( $self->{current_line} =~ /^(if|switch|case|while|else|foreach).*{$/ ) {
 							$block_count++;
 							
 						#End of an if block or start of else block
@@ -917,11 +1018,17 @@ sub define_next_valid_command {
 		# End block of "if", "switch" or "while"
 		######################################
 		} elsif ($self->{current_line} eq '}') {
+			debug "what is the type of block?: '" . $self->{block}{end_to_start}{$self->line_index}{type} . "'\n";
 			if ($self->{block}{end_to_start}{$self->line_index}{type} eq 'while') {
-				debug "[eventMacro] Script is the end of a while 'block', moving to its start.\n", "eventMacro", 3;
+				debug "[eventMacro] Script is the end of a 'while block', moving to its start.\n", "eventMacro", 3;
 				$self->line_index($self->{block}{end_to_start}{$self->line_index}{start});
+				
+			} elsif ($self->{block}{end_to_start}{$self->line_index}{type} eq 'foreach') {
+				debug "[eventMacro] Script is the end of a 'foreach block', moving to its start.\n", "eventMacro", 3;
+				$self->line_index($self->{block}{end_to_start}{$self->line_index}{start});
+				
 			} else {
-				debug "[eventMacro] Script is the end of a not important block (if or switch).\n", "eventMacro", 3;
+				debug "[eventMacro] Script is the end of a normal block (if or switch).\n", "eventMacro", 3;
 				$self->next_line;
 			}
 		

@@ -212,7 +212,7 @@ sub sub_execute {
 sub isNewCommandBlock {
 	my ($line) = @_;
 	
-	if ($line =~ /^if.*{$/ || $line =~ /^case.*{$/ || $line =~ /^switch.*{$/ || $line =~ /^else.*{$/ || $line =~ /^while.*{$/) {
+	if ($line =~ /^(?:if|case|switch|else|while|foreach).*{$/) {
 		return 1;
 	} else {
 		return 0;
@@ -222,7 +222,7 @@ sub isNewCommandBlock {
 sub isNewWrongCommandBlock {
 	my ($line) = @_;
 	
-	if ($_ =~ /^}\s*else\s*{$/ || $_ =~ /}\s*elsif.*{$/ || $_ =~ /^case.*{$/ || $_ =~ /^else*{$/) {
+	if ($line =~ /^}\s*(?:else|elsif|case)\s*.*{$|^else.*{$/) {
 		return 1;
 	} else {
 		return 0;
