@@ -20,7 +20,7 @@ use eventMacro::Core;
 use eventMacro::FileParser qw(isNewCommandBlock);
 use eventMacro::Utilities qw(cmpr getnpcID getItemIDs getItemPrice getStorageIDs getInventoryIDs getInventoryTypeIDs
 	getPlayerID getMonsterID getVenderID getRandom getRandomRange getInventoryAmount getCartAmount getShopAmount
-	getStorageAmount getVendAmount getConfig getWord q4rx q4rx2 getArgFromList getListLenght find_variable get_key_or_index getQuestStatus);
+	getStorageAmount getVendAmount getConfig getWord q4rx q4rx2 getArgFromList getListLenght find_variable find_array_variable get_key_or_index getQuestStatus);
 use eventMacro::Automacro;
 
 # Creates the object
@@ -642,30 +642,40 @@ sub define_next_valid_command {
 		# foreach statement: foreach $var (@array) {
 		######################################
 		} elsif ($self->{current_line} =~ /^foreach\s/) {
-			my ($foreachVar, $arrayVar) = $self->{current_line} =~ /^foreach\s+($general_wider_variable_qr)\s+\(\s*($array_variable_qr)\s*\)\s+{$/;
-			
+			my ($holderVar, $insideParentheses) = $self->{current_line} =~ /^foreach\s+($general_wider_variable_qr)\s+\(\s*($array_variable_qr)\s*\)\s+{$/;
 			debug "[eventMacro] Script is the start of a foreach 'block'.\n", "eventMacro", 3;
-			#defining foreach_var (the variable that holds the array value on each loop)
-			if (!$self->{foreach_block}{$self->line_index}{var}) {
-				my $var = find_variable($foreachVar);
-				if ($var) {
-					$self->{foreach_block}{$self->line_index}{var} = $var;
-				} else {
-					$self->error("foreach block must have a variable before parentheses");
-					undef $self->{foreach_block}{$self->line_index};
-					return;
-				}
+			
+			if (!$holderVar) {
+				$self->error("foreach block must have a variable before parentheses");
+				return;
 			}
 			
+			if (!$insideParentheses) {
+				$self->error("foreach block must have an array inside parentheses");
+				return;
+			}
+			#defining foreach_var (the variable that holds the array value on each loop)
+			my $var = find_variable($holderVar);
+			my $arrayVar = find_array_variable($insideParentheses);
+			if (@{$self->{foreach_block}} < 1) {
+				
+			}
+			push @{$self->{foreach_block}}, {
+				var => $var,
+				arrayVar => $arrayVar,
+				loop_index => 0
+			};
+			
+			
 			#defining foreach_array (the array that the code is going to loop)
+			$self->{foreach_block}{$self->line_index}{array} = $var;
+			
+			
 			if (!$self->{foreach_block}{$self->line_index}{array}) {
-				my $var = find_variable($arrayVar);
 				if ($var->{type} eq 'array') {
-					$self->{foreach_block}{$self->line_index}{array} = $var;
 				} else {
-					$self->error("foreach block must have an array inside parentheses");
 					undef $self->{foreach_block}{$self->line_index};
-					return;
+					
 				}
 			}
 			if (exists $self->{foreach_block}{$self->line_index}{loop_index}) {
