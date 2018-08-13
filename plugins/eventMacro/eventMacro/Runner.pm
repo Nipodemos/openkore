@@ -668,15 +668,12 @@ sub define_next_valid_command {
 					return;
 				}
 			}
-			warning "loop index of current foreach BEFORE: '" . $self->{foreach_block}{$self->line_index}{loop_index} . "'\n";
 			if (exists $self->{foreach_block}{$self->line_index}{loop_index}) {
 				$self->{foreach_block}{$self->line_index}{loop_index}++;
-				warning "incrementing foreach loop index\n";
+			
 			} else {
 				$self->{foreach_block}{$self->line_index}{loop_index} = 0;
-				warning "looks like loop index is not defined yet. defining it\n";
 			}
-			warning "loop index of current foreach AFTER: '" . $self->{foreach_block}{$self->line_index}{loop_index} . "'\n";
 			
 			if ($eventMacro->get_array_size($self->{foreach_block}{$self->line_index}{array}{real_name}) < 1) {
 				$self->error("Array is not defined or do not have elements in it");
@@ -709,13 +706,13 @@ sub define_next_valid_command {
 						
 					}
 					
-					debug "[eventMacro] Cleaning [sub]line '".$self->{current_line}."' inside 'if' block.\n", "eventMacro", 3;
+					debug "[eventMacro] Cleaning line '".$self->{current_line}."' inside 'foreach' block.\n", "eventMacro", 3;
 				}
 			} else {
 				debug("Defining foreach var\n", 'eventMacro', 3);
 				debug("loop index: $self->{foreach_block}{$self->line_index}{loop_index}\n");
 				my $currentArrayValue = $eventMacro->get_var(
-					'accessed_array',                  #type of variable
+					'accessed_array',                                            #type of variable
 					$self->{foreach_block}{$self->line_index}{array}{real_name}, #name of variable
 					$self->{foreach_block}{$self->line_index}{loop_index},       #complement
 				);
@@ -723,15 +720,10 @@ sub define_next_valid_command {
 				$eventMacro->set_var(
 					$self->{foreach_block}{$self->line_index}{var}{type},      #type of variable
 					$self->{foreach_block}{$self->line_index}{var}{real_name}, #name of variable
-					$currentArrayValue,              #new value
-					undef,                           #check callbacks
+					$currentArrayValue,                                        #new value
+					undef,                                                     #check callbacks
 					$self->{foreach_block}{$self->line_index}{var}{complement} #complement of variable (accessed array/hash)
 				);
-				debug ("new value: " . $eventMacro->get_var(
-					$self->{foreach_block}{$self->line_index}{var}{type},
-					$self->{foreach_block}{$self->line_index}{var}{real_name}, #name of variable
-					$self->{foreach_block}{$self->line_index}{var}{complement}
-				) . "\n");
 			}
 			
 			
@@ -1015,7 +1007,7 @@ sub define_next_valid_command {
 			$self->next_line;
 		
 		######################################
-		# End block of "if", "switch" or "while"
+		# End block of "if", "switch", "while" or "foreach"
 		######################################
 		} elsif ($self->{current_line} eq '}') {
 			debug "what is the type of block?: '" . $self->{block}{end_to_start}{$self->line_index}{type} . "'\n";
