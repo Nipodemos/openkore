@@ -922,7 +922,8 @@ sub define_next_valid_command {
 						}
 					}
 				} else {
-					$self->error("Only 'else' and 'case' blocks are allowed inside swtich blocks");
+					$self->error("Only 'else' and 'case' blocks are allowed inside switch blocks");
+					$self->error("line found: $self->{current_line}");
 					return;
 				}
 			}
