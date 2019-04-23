@@ -4,7 +4,7 @@ use strict;
 
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw(parseMacroFile isNewCommandBlock);
+our @EXPORT = qw(parse_macro_file isNewCommandBlock);
 our @EKSPORT_OK = qw(isNewCommandBlock);
 
 use Globals;
@@ -29,7 +29,7 @@ my $tempmacro = 0;
 my %macro;
 my %automacro;
 
-sub parseMacroFile {
+sub parse_macro_file {
 	my ($file, $recursive) = @_;
 	unless ($recursive) {
 		undef %macro;
@@ -52,7 +52,7 @@ sub parseMacroFile {
 			if ($key eq 'macro') {
 				%block = (name => $value, type => "macro");
 				if (exists $macro{$value}) {
-					$macro{$value}{'duplicatedMacro'} = 1;
+					$macro{$value}{'duplicated_macro'} = 1;
 				} else {
 					$macro{$value} = {};
 				}

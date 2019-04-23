@@ -5,11 +5,11 @@ use strict;
 
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw(q4rx q4rx2 between cmpr match getArgs getnpcID getPlayerID
-	getMonsterID getVenderID getItemIDs getItemPrice getInventoryIDs getInventoryTypeIDs getStorageIDs getSoldOut getInventoryAmount
-	getCartAmount getShopAmount getStorageAmount getVendAmount getRandom getRandomRange getConfig
-	getWord call_macro getArgFromList getListLenght sameParty processCmd find_variable get_key_or_index getInventoryAmountbyID
-	getStorageAmountbyID getCartAmountbyID getQuestStatus get_pattern find_hash_and_get_keys find_hash_and_get_values);
+our @EXPORT_OK = qw(q4rx q4rx2 between compare_arguments match_regex get_args get_npc_binID get_player_binID
+	get_monster_binID get_vender_binID get_item_binIDs getItemPrice get_inventory_binIDs get_inventory_type_binIDs get_storage_binIDs get_sold_out get_inventory_amount
+	get_cart_amount get_shop_amount get_storage_amount get_vend_amount get_random get_random_range get_config
+	get_word call_macro get_arg_from_list get_list_lenght same_party processCmd find_variable get_key_or_index
+	get_quest_status get_pattern find_hash_and_get_keys find_hash_and_get_values);
 
 use Utils;
 use Globals;
@@ -24,11 +24,16 @@ use eventMacro::Automacro;
 use eventMacro::FileParser;
 
 sub between {
-	if ($_[0] <= $_[1] && $_[1] <= $_[2]) {return 1}
-	return 0
+	my ($min, $value, $max) = @_;
+
+	if ($min <= $value && $value <= $max) {
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
-sub cmpr {
+sub compare_arguments {
 	my ($first, $cond, $second) = @_;
 	
 	if (defined $first && !defined $cond & !defined $second) {
@@ -48,11 +53,11 @@ sub cmpr {
 				return between($first1, $second, $first2);
 				
 			} else {
-				error "cmpr: Range operations must be of equality or inequality\n", "eventMacro";
+				error "compare_arguments: Range operations must be of equality or inequality\n", "eventMacro";
 				return;
 			}
 		}
-		error "cmpr: wrong # of arguments ($first) ($cond) ($second)\n--> ($second) <-- maybe should be numeric?\n", "eventMacro";
+		error "compare_arguments: wrong # of arguments ($first) ($cond) ($second)\n--> ($second) <-- maybe should be numeric?\n", "eventMacro";
 		return;
 		
 	} elsif ($second =~ /^\s*(-?[\d.]+)\s*\.{2}\s*(-?[\d.]+)\s*$/) {
@@ -65,11 +70,11 @@ sub cmpr {
 				return between($second1, $first, $second2);
 				
 			} else {
-				error "cmpr: Range operations must be of equality or inequality\n", "eventMacro";
+				error "compare_arguments: Range operations must be of equality or inequality\n", "eventMacro";
 				return;
 			}
 		}
-		error "cmpr: wrong # of arguments ($first) ($cond) ($second)\n--> ($first) <-- maybe should be numeric?\n", "eventMacro";
+		error "compare_arguments: wrong # of arguments ($first) ($cond) ($second)\n--> ($first) <-- maybe should be numeric?\n", "eventMacro";
 		return;
 		
 	} elsif ($first =~ /^-?[\d.]+$/ && $second =~ /^-?[\d.]+$/) {
@@ -93,7 +98,7 @@ sub cmpr {
 		}
 		
 	} elsif ($cond eq "=~" && $second =~ /^\/.*?\/\w?\s*$/) {
-		return match($first, $second);
+		return match_regex($first, $second);
 	}
 
 	return 0;
@@ -107,18 +112,18 @@ sub q4rx {
 
 sub q4rx2 {
 	# We let alone the original q4rx sub routine... 
-	# instead, we use this for our new @nick ;p
+	# instead, we use this for our new &nick ;p
 	my $s = $_[0];
 	$s =~ s/([\/*+(){}\[\]\\\$\^?"'\. ])/\\$1/g;
 	return $s
 }
 
-sub match {
+sub match_regex {
 	my ($text_to_be_compared, $regex) = @_;
 
 	unless (defined $text_to_be_compared && defined $regex) {
 		# this produces a warning but that's what we want
-		error "match: wrong # of arguments ($text_to_be_compared) ($regex)\n", "eventMacro";
+		error "match_regex: wrong # of arguments ($text_to_be_compared) ($regex)\n", "eventMacro";
 		return;
 	}
 
@@ -136,7 +141,7 @@ sub match {
 	return;
 }
 
-sub getArgs {
+sub get_args {
 	my $arg = $_[0];
 	if ($arg =~ /".*"/) {
 		my @ret = $arg =~ /^"(.*?)"\s+(.*?)( .*)?$/;
@@ -148,7 +153,7 @@ sub getArgs {
 }
 
 # gets word from message
-sub getWord {
+sub get_word {
 	my ($message, $wordno) = $_[0] =~ /^"(.*?)"\s*,\s?(\d+|\$[a-zA-Z][a-zA-Z\d]*)$/s;
 	my @words = split(/[ ,.:;\"\'!?\r\n]/, $message);
 	my $no = 1;
@@ -168,16 +173,17 @@ sub getWord {
 }
 
 # gets openkore setting
-sub getConfig {
-	my ($arg1) = $_[0] =~ /^\s*(\w*\.*\w+)\s*$/;
+sub get_config {
+	my ($arg) = @_;
+	$arg =~ s/^\s+|\s+$//g;
 	# Basic Support for "label" in blocks. Thanks to "piroJOKE" (from Commands.pm, sub cmdConf)
 	if ($arg1 =~ /\./) {
-		$arg1 =~ s/\.+/\./; # Filter Out Unnececary dot's
+		$arg1 =~ s/\.+/\./; # Filter Out Unnecessary dot's
 		my ($label, $param) = split /\./, $arg1, 2; # Split the label form parameter
-		foreach (%::config) {
-			if ($_ =~ /_\d+_label/){ # we only need those blocks witch have labels
-				if ($::config{$_} eq $label) {
-					my ($real_key, undef) = split /_label/, $_, 2;
+		foreach my $key (keys %config) {
+			if ($key =~ /_\d+_label/){ # we only need those blocks witch have labels
+				if ($::config{$key} eq $label) {
+					my ($real_key, undef) = split /_label/, $key, 2;
 					# "<label>.block" param support. Thanks to "vit"
 					if ($param ne "block") {
 						$real_key .= "_";
@@ -197,7 +203,7 @@ sub getConfig {
 #   'inactive'    - if the quest doesn't exist or is not active
 #   'incomplete'  - if the quest has a timer which hasn't timed out, or incomplete kill missions
 #   'complete'    - if the quest is active and both timer and missions (if any) are complete
-sub getQuestStatus {
+sub get_quest_status {
 	my @quest_ids = @_;
 	my $result = {};
 	foreach my $quest_id ( @quest_ids ) {
@@ -218,84 +224,107 @@ sub getQuestStatus {
 }
 
 # get NPC array index
-sub getnpcID {
-	my $arg = $_[0];
-	my ($what, $a, $b);
+sub get_npc_binID {
+	my ($arg) = @_;
+	my ($what, $x, $y,$regex,$case_insensitive,$string);
 
-	if (($a, $b) = $arg =~ /^\s*(\d+) (\d+)\s*$/) {$what = 1}
-	elsif (($a, $b) = $arg =~ /^\s*\/(.+?)\/(\w?)\s*$/) {$what = 2}
-	elsif (($a) = $arg =~ /^\s*"(.*?)"\s*$/) {$what = 3}
-	else {return -1}
-	
-	my @ids;	
-	foreach my $npc (@{$npcsList->getItems()}) {
-		if ($what == 1) {return $npc->{binID} if ($npc->{pos}{x} == $a && $npc->{pos}{y} == $b)}
-		elsif ($what == 2) {
-			if ($npc->{name} =~ /$a/ || ($b eq "i" && $npc->{name} =~ /$a/i)) {push @ids, $npc->{binID}}
-		}
-		else {return $npc->{binID} if $npc->{name} eq $a}
+	if ($arg =~ /^\s*(\d+) (\d+)\s*$/) {
+		$x = $1;
+		$y = $2;
+
+	} elsif ($arg =~ /^\s*\/(.+?)\/(\w?)\s*$/) {
+		$regex = $1;
+		$case_insensitive = $2;
+
+	} elsif ($arg =~ /^\s*"(.*?)"\s*$/) {
+		$string = $1;
+
+	} else {
+		return -1;
 	}
-	if (@ids) {return join ',', @ids}
-	return -1
+	
+	my @binIDs;
+	foreach my $npc (@{$npcsList->getItems()}) {
+		if (defined $x && defined $y) {
+			return $npc->{binID} if ($npc->{pos}{x} == $x && $npc->{pos}{y} == $y);
+
+		} elsif (defined $regex) {
+			if ($npc->{name} =~ /$regex/ || ($case_insensitive eq "i" && $npc->{name} =~ /$regex/i)) {
+				push @binIDs, $npc->{binID};
+			}
+
+		} else {
+			return $npc->{binID} if $npc->{name} eq $string;
+		}
+	}
+	if (@binIDs) {
+		return join ',', @binIDs;
+	}
+	return -1;
 }
 
 # get player array index
-sub getPlayerID {
+sub get_player_binID {
 	foreach my $pl (@{$playersList->getItems()}) {
 		return $pl->{binID} if $pl->name eq $_[0]
 	}
-	return -1
+	return -1;
 }
 
 # get monster array index
-sub getMonsterID {
+sub get_monster_binID {
 	foreach my $ml (@{$monstersList}) {
 		return $ml->{binID} if ($ml->name eq $_[0] || $ml->{binType} eq $_[0] || $ml->{name_given} eq $_[0]);
 	}
-	return -1
+	return -1;
 }
 
 # get vender array index
-sub getVenderID {
+sub get_vender_binID {
 	for (my $i = 0; $i < @::venderListsID; $i++) {
 		next if $::venderListsID[$i] eq "";
 		my $player = Actor::get($::venderListsID[$i]);
 		return $i if $player->name eq $_[0]
 	}
-	return -1
+	return -1;
 }
 
-# get inventory item ids
+# get inventory item binIDs
 # checked and ok
-sub getInventoryIDs {
+sub get_inventory_binIDs {
+	my($item_to_find) = @_
 	return unless $char->inventory->isReady();
-	my $find = lc($_[0]);
+	my $item_to_find = lc($_[0]);
 	my @ids;
 	foreach my $item (@{$char->inventory->getItems}) {
-		if (lc($item->name) eq $find || $item->{nameID} == $find) {push @ids, $item->{binID}}
+		if (lc($item->name) eq $item_to_find || $item->{nameID} == $item_to_find) {
+			push @ids, $item->{binID}
+		}
 	}
-	unless (@ids) {push @ids, -1}
-	return @ids
+	unless (@ids) {
+		push @ids, -1;
+	}
+	return @ids;
 }
 
-# get inventory item type ids
+# get inventory item type binIDs
 # checked and ok
-sub getInventoryTypeIDs {
+sub get_inventory_type_binIDs {
 	return unless $char->inventory->isReady();
 	my $find = lc($_[0]);
 	my @ids;
 	foreach my $item (@{$char->inventory->getItems}) {
-        if ( $item->usable() eq 1 && $find eq "usable") { push @ids, $item->{binID} }
+        if ( $item->usable() eq 1 && $find eq "usable")                              { push @ids, $item->{binID} }
         if ( $item->equippable() eq 1 && $item->{equipped} eq 0 && $find eq "equip") { push @ids, $item->{binID} }
-        if ( $item->usable() eq 0 && $item->equippable() eq 0 && $find eq "etc" ) { push @ids, $item->{binID} }
-        if ( $item->{type} eq 6 && $find eq "card" ) { push @ids, $item->{binID} }
+        if ( $item->usable() eq 0 && $item->equippable() eq 0 && $find eq "etc" )    { push @ids, $item->{binID} }
+        if ( $item->{type} eq 6 && $find eq "card" )                                 { push @ids, $item->{binID} }
     }
 	unless (@ids) {push @ids, -1}
 	return @ids
 }
 
 # get item array index
-sub getItemIDs {
+sub get_item_binIDs {
 	my ($item, $pool) = (lc($_[0]), $_[1]);
 	return if !$pool->isReady;
 	my @ids = map { $_->{binID} } grep { $item eq lc $_->name || $item == $_->{nameID} } @$pool;
@@ -304,7 +333,7 @@ sub getItemIDs {
 }
 
 # get item price from its index
-# works with @venderprice
+# works with &venderprice
 # returns -1 if no shop is being visited
 sub getItemPrice {
 	my ($itemIndex, $pool) = ($_[0], $_[1]);
@@ -315,90 +344,66 @@ sub getItemPrice {
 
 # get storage array index
 # returns -1 if no matching items in storage
-sub getStorageIDs {
+sub get_storage_binIDs {
 	return unless $char->storage->wasOpenedThisSession();
 	my $find = lc($_[0]);
 	my @ids;
 	foreach my $item (@{$char->storage->getItems}) {
 		if (lc($item->name) eq $find|| $item->{nameID} == $find) {push @ids, $item->{binID}}
-  	}
+	}
 	unless (@ids) {push @ids, -1}
 	return @ids
 }
 
 # get amount of sold out slots
-sub getSoldOut {
+sub get_sold_out {
 	return 0 unless $shopstarted;
 	my $soldout = 0;
-	foreach my $aitem (@::articles) {
-		next unless $aitem;
-		if ($aitem->{quantity} == 0) {$soldout++}
+	foreach my $article_item (@::articles) {
+		next unless $article_item;
+		if ($article_item->{quantity} == 0) {
+			$soldout++;
+		}
 	}
-	return $soldout
+	return $soldout;
 }
 
 # get amount of an item in inventory
-sub getInventoryAmount {
+sub get_inventory_amount {
 	my $arg = lc($_[0]);
 	return -1 unless ($char->inventory->isReady());
 	my $amount = 0;
 	foreach my $item (@{$char->inventory->getItems}) {
 		if (lc($item->name) eq $arg || $item->{nameID} == $arg) {$amount += $item->{amount}}
 	}
-	return $amount
-}
-
-# get amount of an item in inventory by its ID
-sub getInventoryAmountbyID {
-	my $ID = $_[0];
-	return -1 unless ($char->inventory->isReady);
-	my $amount = 0;
-	foreach my $item (@{$char->inventory->getItems}) {
-		if ($item->{nameID} == $ID) {
-			$amount += $item->{amount};
-		}
-	}
-	return $amount
+	return $amount;
 }
 
 # get amount of an item in cart
-sub getCartAmount {
+sub get_cart_amount {
 	my $arg = lc($_[0]);
 	return -1 unless ($char->cart->isReady());
 	my $amount = 0;
 	foreach my $item (@{$char->cart->getItems}) {
 		if (lc($item->name) eq $arg || $item->{nameID} == $arg) {$amount += $item->{amount}}
-  	}
-	return $amount
-}
-
-# get amount of an item in cart by its ID
-sub getCartAmountbyID {
-	my $ID = $_[0];
-	return -1 unless ($char->cart->isReady());
-	my $amount = 0;
-	foreach my $item (@{$char->cart->getItems}) {
-		if ($item->{nameID} == $ID) {
-			$amount += $item->{amount};
-		}
-  	}
-	return $amount
+	}
+	return $amount;
 }
 
 # get amount of an item in your shop
-sub getShopAmount {
+sub get_shop_amount {
 	my $arg = lc($_[0]);
 	my $amount = 0;
-	foreach my $aitem (@::articles) {
-		next unless $aitem;
-		if (lc($aitem->{name}) eq $arg || $aitem->{nameID} == $arg) {$amount += $aitem->{quantity}}
+	foreach my $articleItem (@::articles) {
+		next unless $articleItem;
+		if (lc($articleItem->{name}) eq $arg || $articleItem->{nameID} == $arg) {$amount += $articleItem->{quantity}}
 	}
-	return $amount
+	return $amount;
 }
 
 # get amount of an item in storage
 # returns -1 if the storage is closed
-sub getStorageAmount {
+sub get_storage_amount {
 	my $arg = lc($_[0]);
 	return -1 unless ($char->storage->wasOpenedThisSession());
 	my $amount = 0;
@@ -408,23 +413,9 @@ sub getStorageAmount {
 	return $amount
 }
 
-# get amount of an item in storage by its ID
-# returns -1 if the storage is closed
-sub getStorageAmountbyID {
-	my $ID = $_[0];
-	return -1 unless ($char->storage->wasOpenedThisSession());
-	my $amount = 0;
-	foreach my $item (@{$char->storage->getItems}) {
-		if ($item->{nameID} == $ID) {
-			$amount += $item->{amount};
-		}
-  	}
-	return $amount
-}
-
 # get amount of items for the specifical index in another venders shop
 # returns -1 if no shop is being visited
-sub getVendAmount {
+sub get_vend_amount {
 	my ($itemIndex, $pool) = ($_[0], $_[1]);
 	my $amount = -1;
 	if ($$pool[$itemIndex]) {$amount = $$pool[$itemIndex]{amount}}
@@ -432,7 +423,7 @@ sub getVendAmount {
 }
 
 # returns random item from argument list
-sub getRandom {
+sub get_random {
 	my $arg = $_[0];
 	my @items;
 	my $id = 0;
@@ -449,7 +440,7 @@ sub getRandom {
 
 # returns given argument from a comma separated list
 # returns -1 if no such listID exists or when the list is empty or wrong
-sub getArgFromList {
+sub get_arg_from_list {
 	my ($listID, $list) = split(/, \s*/, $_[0]);
 	my @items = split(/,\s*/, $list);
 	unless (@items) {
@@ -465,14 +456,14 @@ sub getArgFromList {
 }
 
 # returns the length of a comma separated list
-sub getListLenght {
+sub get_list_lenght {
 	my $list = $_[0];
 	my @items = split(/,\s*/, $list);
 	return scalar(@items)
 }
 
 # check if player is in party
-sub sameParty {
+sub same_party {
 	my $player = shift;
 	for (my $i = 0; $i < @partyUsersID; $i++) {
 		next if $partyUsersID[$i] eq "";
@@ -483,9 +474,10 @@ sub sameParty {
 }
 
 # returns random number within the given range  ###########
-sub getRandomRange {
-	my ($low, $high) = split(/,\s*/, $_[0]);
-	return int(rand($high-$low+1))+$low if (defined $high && defined $low)
+sub get_random_range {
+	my ($value) = @_;
+	my ($low, $high) = split(/,\s*/, $value);
+	return int(rand($high-$low+1))+$low if (defined $high && defined $low);
 }
 
 sub get_pattern {
@@ -503,11 +495,11 @@ sub find_variable {
 	}
 	
 	if (my $array = find_array_variable($text)) {
-		return ({ display_name => $array->{display_name}, type => 'array', real_name => $array->{real_name} });
+		return ({ display_name => $array->{display_name},  type => 'array',  real_name => $array->{real_name} });
 	}
 	
 	if (my $hash = find_hash_variable($text)) {
-		return ({ display_name => $hash->{display_name}, type => 'hash', real_name => $hash->{real_name} });
+		return ({ display_name => $hash->{display_name},   type => 'hash',   real_name => $hash->{real_name} });
 	}
 	
 	if (my $accessed_var = find_accessed_variable($text)) {
@@ -575,7 +567,7 @@ sub find_accessed_variable {
 			return if ($complement !~ /^[a-zA-Z\d]+$/ && !find_variable($complement));
 		}
 		
-		my $original_name = ('$'.$name.$open_bracket.$complement.$close_bracket);
+		my $original_name = ('$' . $name . $open_bracket . $complement . $close_bracket);
 		
 		return {real_name => $name, type => $type, display_name => $original_name, complement => $complement};
 	}
@@ -599,16 +591,6 @@ sub get_key_or_index {
 		$key_index .= $current;
 	}
 	return undef;
-}
-
-sub find_hash_and_get_keys {
-	my ($var) = find_variable(@_);
-	return @{$eventMacro->get_hash_keys($var->{real_name})};
-}
-
-sub find_hash_and_get_values {
-	my ($var) = find_variable(@_);
-	return @{$eventMacro->get_hash_values($var->{real_name})};
 }
 
 1;

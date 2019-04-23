@@ -16,9 +16,9 @@ use List::Util qw(max min sum);
 use eventMacro::Data;
 use eventMacro::Core;
 use eventMacro::FileParser qw(isNewCommandBlock);
-use eventMacro::Utilities qw(cmpr getnpcID getItemIDs getItemPrice getStorageIDs getInventoryIDs getInventoryTypeIDs
-	getPlayerID getMonsterID getVenderID getRandom getRandomRange getInventoryAmount getCartAmount getShopAmount
-	getStorageAmount getVendAmount getConfig getWord q4rx q4rx2 getArgFromList getListLenght get_pattern find_variable get_key_or_index getQuestStatus
+use eventMacro::Utilities qw(compare_arguments get_npc_binID get_item_binIDs getItemPrice get_storage_binIDs get_inventory_binIDs get_inventory_type_binIDs
+	get_player_binID get_monster_binID get_vender_binID get_random get_random_range get_inventory_amount get_cart_amount get_shop_amount
+	get_storage_amount get_vend_amount get_config get_word q4rx q4rx2 get_arg_from_list get_list_lenght get_pattern find_variable get_key_or_index get_quest_status
 	find_hash_and_get_keys find_hash_and_get_values);
 use eventMacro::Automacro;
 
@@ -26,7 +26,7 @@ use eventMacro::Automacro;
 sub new {
 	my ($class, $name, $repeat, $interruptible, $overrideAI, $orphan, $delay, $macro_delay, $is_submacro) = @_;
 
-	return undef unless ($eventMacro->{Macro_List}->getByName($name));
+	return undef unless ($eventMacro->{Macro_List}->get_by_name($name));
 	
 	my $self = bless {}, $class;
 	
@@ -36,7 +36,7 @@ sub new {
 	$self->{finished} = 0;
 	$self->{macro_block} = 0;
 	
-	$self->{lines_array} = $eventMacro->{Macro_List}->getByName($name)->get_lines();
+	$self->{lines_array} = $eventMacro->{Macro_List}->get_by_name($name)->get_lines();
 	$self->{line_index} = 0;
 	
 	$self->{label} = {scanLabels($self->{lines_array})};
@@ -1707,7 +1707,7 @@ sub parse_release_and_lock {
 		}
 		
 	} else {
-		my $automacro = $eventMacro->{Automacro_List}->getByName($parsed_automacro_name);
+		my $automacro = $eventMacro->{Automacro_List}->get_by_name($parsed_automacro_name);
 		if (!defined $automacro) {
 			$self->error("could not find automacro with name '$parsed_automacro_name'");
 		}
@@ -1748,7 +1748,7 @@ sub parse_call {
 		
 	if (!defined $parsed_macro_name) {
 		$self->error("macro name could not be defined");
-	} elsif (!defined $eventMacro->{Macro_List}->getByName($parsed_macro_name)) {
+	} elsif (!defined $eventMacro->{Macro_List}->get_by_name($parsed_macro_name)) {
 		$self->error("could not find macro with name '$parsed_macro_name'");
 	}
 	return if (defined $self->error);
@@ -1809,9 +1809,9 @@ sub resolve_statement {
 		$parsed_last  = $self->parse_command($last);
 		return if (defined $self->error);
 	}
-	my $result = cmpr($parsed_first, $cond, $parsed_last);
+	my $result = compare_arguments($parsed_first, $cond, $parsed_last);
 	
-	#if sub cmpr gave some error, result will be empty
+	#if sub compare_arguments gave some error, result will be empty
 	#else will be 0 or 1
 	if ($result eq '') {
 		$self->error("error shown above while comparing values on sub resolve_statement");
@@ -2078,87 +2078,87 @@ sub parse_command {
 		my $only_replace_once = 0;
 
 		if ($keyword eq 'npc') {
-			$result = getnpcID($parsed);
+			$result = get_npc_binID($parsed);
 			
 		} elsif ($keyword eq 'cart') {
-			$result = (getItemIDs($parsed, $char->cart))[0];
+			$result = (get_item_binIDs($parsed, $char->cart))[0];
 			
 		} elsif ($keyword eq 'Cart') {
-			$result = join ',', getItemIDs($parsed, $char->cart);
+			$result = join ',', get_item_binIDs($parsed, $char->cart);
 			
 		} elsif ($keyword eq 'inventory') {
-			$result = (getInventoryIDs($parsed))[0];
+			$result = (get_inventory_binIDs($parsed))[0];
 			
 		} elsif ($keyword eq 'Inventory') {
-			$result = join ',', getInventoryIDs($parsed);
+			$result = join ',', get_inventory_binIDs($parsed);
 			
 		} elsif ($keyword eq 'InventoryType') {
-			$result = join ',', getInventoryTypeIDs($parsed);
+			$result = join ',', get_inventory_type_binIDs($parsed);
 			
 		} elsif ($keyword eq 'store') {
-			$result = (getItemIDs($parsed, $storeList))[0];
+			$result = (get_item_binIDs($parsed, $storeList))[0];
 			
 		} elsif ($keyword eq 'storage') {
-			$result = (getStorageIDs($parsed))[0];
+			$result = (get_storage_binIDs($parsed))[0];
 			
 		} elsif ($keyword eq 'Storage') {
-			$result = join ',', getStorageIDs($parsed);
+			$result = join ',', get_storage_binIDs($parsed);
 			
 		} elsif ($keyword eq 'player') {
-			$result = getPlayerID($parsed);
+			$result = get_player_binID($parsed);
 			
 		} elsif ($keyword eq 'monster') {
-			$result = getMonsterID($parsed);
+			$result = get_monster_binID($parsed);
 			
 		} elsif ($keyword eq 'vender') {
-			$result = getVenderID($parsed);
+			$result = get_vender_binID($parsed);
 			
 		} elsif ($keyword eq 'venderitem') {
-			$result = (getItemIDs($parsed, $venderItemList))[0];
+			$result = (get_item_binIDs($parsed, $venderItemList))[0];
 			
 		} elsif ($keyword eq 'venderItem') {
-			$result = join ',', getItemIDs($parsed, $venderItemList);
+			$result = join ',', get_item_binIDs($parsed, $venderItemList);
 			
 		} elsif ($keyword eq 'venderprice') {
 			$result = getItemPrice($parsed, $venderItemList->getItems);
 			
 		} elsif ($keyword eq 'venderamount') {
-			$result = getVendAmount($parsed, $venderItemList->getItems);
+			$result = get_vend_amount($parsed, $venderItemList->getItems);
 			
 		} elsif ($keyword eq 'random') {
-			$result = getRandom($parsed);
+			$result = get_random($parsed);
 			$only_replace_once = 1;
 			
 		} elsif ($keyword eq 'rand') {
-			$result = getRandomRange($parsed);
+			$result = get_random_range($parsed);
 			$only_replace_once = 1;
 			
 		} elsif ($keyword eq 'invamount') {
-			$result = getInventoryAmount($parsed);
+			$result = get_inventory_amount($parsed);
 			
 		} elsif ($keyword eq 'cartamount') {
-			$result = getCartAmount($parsed);
+			$result = get_cart_amount($parsed);
 			
 		} elsif ($keyword eq 'shopamount') {
-			$result = getShopAmount($parsed);
+			$result = get_shop_amount($parsed);
 			
 		} elsif ($keyword eq 'storamount') {
-			$result = getStorageAmount($parsed);
+			$result = get_storage_amount($parsed);
 			
 		} elsif ($keyword eq 'config') {
-			$result = getConfig($parsed);
+			$result = get_config($parsed);
 			
 		} elsif ($keyword eq 'arg') {
-			$result = getWord($parsed);
+			$result = get_word($parsed);
 			
 		} elsif ($keyword eq 'eval') {
 			$result = eval($parsed) unless $Settings::lockdown;
 			
 		} elsif ($keyword eq 'listitem') {
-			$result = getArgFromList($parsed);
+			$result = get_arg_from_list($parsed);
 			
 		} elsif ($keyword eq 'listlength') {
-			$result = getListLenght($parsed);
+			$result = get_list_lenght($parsed);
 			
 		} elsif ($keyword eq 'strip') {
 			$parsed =~ s/\(|\)//g;
@@ -2170,10 +2170,10 @@ sub parse_command {
 			$result = join (',', @values);
 			
 		} elsif ($keyword eq 'keys') {
-			$result = join ',', find_hash_and_get_keys($inside_brackets);;
+			$result = join ',', @{$eventMacro->get_hash_keys($inside_brackets)};
 			
 		} elsif ($keyword eq 'values') {
-			$result = join ',', find_hash_and_get_values($inside_brackets);
+			$result = join ',', @{$eventMacro->get_hash_keys($inside_brackets)};
 			
 		} elsif ($keyword eq 'nick') {
 			$parsed = $self->substitue_variables($inside_brackets);
@@ -2195,16 +2195,16 @@ sub parse_command {
 			$only_replace_once = 1;
 
 		} elsif ( $keyword eq 'questStatus' ) {
-			$result = getQuestStatus( $parsed )->{$parsed} || 'unknown';
+			$result = get_quest_status( $parsed )->{$parsed} || 'unknown';
 
 		} elsif ( $keyword eq 'questInactiveCount' ) {
-			$result = grep { $_ eq 'inactive' } values %{ getQuestStatus( split /\s*,\s*/, $parsed ) };
+			$result = grep { $_ eq 'inactive' } values %{ get_quest_status( split /\s*,\s*/, $parsed ) };
 
 		} elsif ( $keyword eq 'questIncompleteCount' ) {
-			$result = grep { $_ eq 'incomplete' } values %{ getQuestStatus( split /\s*,\s*/, $parsed ) };
+			$result = grep { $_ eq 'incomplete' } values %{ get_quest_status( split /\s*,\s*/, $parsed ) };
 
 		} elsif ( $keyword eq 'questCompleteCount' ) {
-			$result = grep { $_ eq 'complete' } values %{ getQuestStatus( split /\s*,\s*/, $parsed ) };
+			$result = grep { $_ eq 'complete' } values %{ get_quest_status( split /\s*,\s*/, $parsed ) };
 
 		}
 		

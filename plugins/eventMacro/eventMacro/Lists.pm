@@ -31,7 +31,7 @@ sub add {
 	return $listIndex;
 }
 
-sub getByName {
+sub get_by_name {
 	my ($self, $name) = @_;
 	my $indexSlot = $self->{nameIndex}{lc($name)};
 	if ($indexSlot) {
@@ -62,7 +62,7 @@ sub remove {
 
 sub removeByName {
 	my ($self, $name) = @_;
-	my $member = $self->getByName($name);
+	my $member = $self->get_by_name($name);
 	if (defined $member) {
 		return $self->remove($member);
 	} else {
@@ -82,7 +82,7 @@ sub checkValidity {
 	my ($self) = @_;
 	$self->SUPER::checkValidity();
 	foreach my $k (keys %{$self->{nameIndex}}) {
-		should(lc($self->getByName($k)->get_name()), $k);
+		should(lc($self->get_by_name($k)->get_name()), $k);
 		should(lc $k, $k);
 	}
 }

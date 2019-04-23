@@ -3,13 +3,15 @@ package eventMacro::Validator::NumericComparison;
 use strict;
 use base 'eventMacro::Validator';
 use eventMacro::Data qw( $general_wider_variable_qr );
-use eventMacro::Utilities qw( find_variable );
+use eventMacro::Utilities qw( find_variable between );
 
 my $number_qr = qr/-?\d+(?:\.\d+)?/;
 
 sub parse {
 	my ( $self, $str ) = @_;
-	$self->{parsed} = $str =~ /^\s*(<|<=|=|==|!=|!|>=|>|)\s*($number_qr%?|$general_wider_variable_qr)(?:\s*\.\.\s*($number_qr%?|$general_wider_variable_qr))?\s*$/o;
+	my @matches = $str =~ /^\s*(<|<=|=|==|!=|!|>=|>|)\s*($number_qr%?|$general_wider_variable_qr)(?:\s*\.\.\s*($number_qr%?|$general_wider_variable_qr))?\s*$/o;
+	$self->{parsed} = scalar @matches;
+
 	if (!$self->{parsed}) {
 		$self->{error} = "There were found no numeric comparison in the condition code";
 		return;
@@ -18,37 +20,37 @@ sub parse {
 	$self->{var_name_min} = undef;
 	$self->{var_name_max} = undef;
 	
-	$self->{op}  = $1 || '==';
+	$self->{op} = $matches[0] || '==';
 	
-	if (my $var = find_variable($2)) {
-		$self->{min} = undef;
+	if (my $var = find_variable($matches[1])) {
+		$self->{min}          = undef;
+		$self->{min_is_var}   = 1;
+		$self->{min_is_pct}   = 0;
 		$self->{var_name_min} = $var->{display_name};
-		$self->{min_is_pct} = 0;
-		$self->{min_is_var} = 1;
+
 		push(@{$self->{var}}, $var);
 	} else {
-		$self->{min} = $2;
+		$self->{min} = $matches[1];
 		$self->{min_is_pct} = $self->{min} =~ s/%$//;
 		$self->{min_is_var} = 0;
 	}
-	
-	if ( !defined $3 ) {
-		$self->{max}        = $self->{min};
-		$self->{max_is_var} = $self->{min_is_var};
-		$self->{max_is_pct} = $self->{min_is_pct};
-		$self->{var_name_max} = $self->{var_name_min};
+
+	if (my $var = find_variable($matches[2])) {
+		$self->{max}          = undef;
+		$self->{var_name_max} = $var->{display_name};
+		$self->{max_is_pct}   = 0;
+		$self->{max_is_var}   = 1;
+
+		push(@{$self->{var}}, $var) unless ($var->{display_name} eq $self->{var_name_min});
+	} elsif ( defined $matches[2]) {
+		$self->{max} = $matches[2];
+		$self->{max_is_pct} = $self->{max} =~ s/%$//;
+		$self->{max_is_var} = 0;
 	} else {
-		if (my $var = find_variable($3)) {
-			$self->{max} = undef;
-			$self->{var_name_max} = $var->{display_name};
-			$self->{max_is_pct} = 0;
-			$self->{max_is_var} = 1;
-			push(@{$self->{var}}, $var) unless ($var->{display_name} eq $self->{var_name_min});
-		} else {
-			$self->{max} = $3;
-			$self->{max_is_pct} = $self->{max} =~ s/%$//;
-			$self->{max_is_var} = 0;
-		}
+		$self->{max}          = $self->{min};
+		$self->{max_is_var}   = $self->{min_is_var};
+		$self->{max_is_pct}   = $self->{min_is_pct};
+		$self->{var_name_max} = $self->{var_name_min};
 	}
 	
 	if ((defined $self->{var_name_min} && $self->{var_name_min} =~ /^\./) || (defined $self->{var_name_max} && $self->{var_name_max} =~ /^\./)) {
@@ -93,10 +95,6 @@ sub validate {
 
     # Unknown op??!
     return 0;
-}
-
-sub between {
-	$_[0] <= $_[1] && $_[1] <= $_[2];
 }
 
 1;

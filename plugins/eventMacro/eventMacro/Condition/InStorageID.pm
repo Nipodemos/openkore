@@ -5,7 +5,7 @@ use strict;
 use base 'eventMacro::Condition::Base::InStorage';
 
 
-use eventMacro::Utilities qw( getStorageAmountbyID );
+use eventMacro::Utilities qw( getStorageAmount );
 
 sub _parse_syntax {
 	my ( $self, $condition_code ) = @_;
@@ -25,7 +25,7 @@ sub _parse_syntax {
 
 sub _get_val {
 	my ( $self ) = @_;
-	getStorageAmountbyID($self->{wanted});
+	getStorageAmount($self->{wanted});
 }
 
 1;

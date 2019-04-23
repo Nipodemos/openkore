@@ -4,7 +4,7 @@ use strict;
 
 use base 'eventMacro::Condition::Base::InInventory';
 
-use eventMacro::Utilities qw( getInventoryAmountbyID );
+use eventMacro::Utilities qw( get_inventory_amount );
 
 sub _parse_syntax {
 	my ( $self, $condition_code ) = @_;
@@ -24,7 +24,7 @@ sub _parse_syntax {
 
 sub _get_val {
 	my ( $self ) = @_;
-	return getInventoryAmountbyID($self->{wanted});
+	return get_inventory_amount($self->{wanted});
 }
 
 1;

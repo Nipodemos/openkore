@@ -3,7 +3,7 @@ package eventMacro::Condition::InCartID;
 use strict;
 
 use base 'eventMacro::Condition::Base::InCart';
-use eventMacro::Utilities qw( getCartAmountbyID );
+use eventMacro::Utilities qw( get_cart_amount );
 
 sub _parse_syntax {
 	my ( $self, $condition_code ) = @_;
@@ -23,7 +23,7 @@ sub _parse_syntax {
 
 sub _get_val {
 	my ( $self ) = @_;
-	getCartAmountbyID($self->{wanted});
+	get_cart_amount($self->{wanted});
 }
 
 1;

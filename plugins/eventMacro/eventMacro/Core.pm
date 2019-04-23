@@ -45,7 +45,7 @@ sub new {
 
 	$self->{automacro_index_to_queue_index} = {};
 
-	my $parse_result = parseMacroFile($file, 0);
+	my $parse_result = parse_macro_file($file, 0);
 	if ( !$parse_result ) {
 		$self->{parse_failed} = 1;
 		return $self;
@@ -174,7 +174,7 @@ sub create_macro_list {
 		####################################
 		#####Duplicated Name Check
 		####################################
-		if (exists $macro->{$name}{'duplicatedMacro'}) {
+		if (exists $macro->{$name}{'duplicated_macro'}) {
 			error "[eventMacro] Ignoring macro '$name'. Macros can't have same name.\n";
 			next;
 		}
@@ -185,9 +185,8 @@ sub create_macro_list {
 
 sub create_automacro_list {
 	my ($self, $automacro) = @_;
-	my %modulesLoaded;
 	AUTOMACRO: while (my ($name,$value) = each %{$automacro}) {
-		my ($currentAutomacro, %currentConditions, %currentParameters, $has_event_type_condition, $event_type_condition_name);
+		my ($current_automacro, %current_conditions, %current_parameters, $has_event_type_condition, $event_type_condition_name);
 		$has_event_type_condition = 0;
 		$event_type_condition_name = undef;
 		
@@ -225,7 +224,7 @@ sub create_automacro_list {
 		
 		PARAMETER: foreach my $parameter (@{$value->{'parameters'}}) {
 			###Check Duplicate Parameter
-			if (exists $currentParameters{$parameter->{'key'}}) {
+			if (exists $current_parameters{$parameter->{'key'}}) {
 				error "[eventMacro] Ignoring automacro '$name' (parameter ".$parameter->{'key'}." duplicate)\n";
 				next AUTOMACRO;
 			}
@@ -233,14 +232,14 @@ sub create_automacro_list {
 			if ($parameter->{'key'} eq "call" && $parameter->{'value'} =~ /(\S+)\s+(.*)?/) {
 				my ($macro_name, $params) = ($1 , $2); 
 				
-				if (!$self->{Macro_List}->getByName($macro_name) ) {
+				if (!$self->{Macro_List}->get_by_name($macro_name) ) {
 					error "[eventMacro] Ignoring automacro '$name' (call '".$macro_name."' is not a valid macro name)\n";
 					next AUTOMACRO;
 				} else {
 					unless (defined $params) {
 						$parameter->{'value'} = $macro_name;
 					}
-					$currentParameters{$parameter->{'key'}} = $parameter->{'value'};
+					$current_parameters{$parameter->{'key'}} = $parameter->{'value'};
 				}
 			###Parameter: delay
 			} elsif ($parameter->{'key'} eq "delay" && $parameter->{'value'} !~ /\d+/) {
@@ -290,12 +289,12 @@ sub create_automacro_list {
 				error "[eventMacro] Ignoring automacro '$name' (repeat parameter should be a number)\n";
 				next AUTOMACRO;
 			} else {
-				$currentParameters{$parameter->{'key'}} = $parameter->{'value'};
+				$current_parameters{$parameter->{'key'}} = $parameter->{'value'};
 			}
 		}
 		
 		###Recheck Parameter call
-		if (!exists $currentParameters{'call'}) {
+		if (!exists $current_parameters{'call'}) {
 			error "[eventMacro] Ignoring automacro '$name' (all automacros must have a macro call)\n";
 			next AUTOMACRO;
 		}
@@ -326,7 +325,7 @@ sub create_automacro_list {
 				next AUTOMACRO;
 			}
 			
-			if (exists $currentConditions{$condition_module} && $condition_object->is_unique_condition()) {
+			if (exists $current_conditions{$condition_module} && $condition_object->is_unique_condition()) {
 				error "[eventMacro] Condition '".$condition->{'key'}."' cannot be used more than once in an automacro. It was used twice (or more) in automacro '".$name."'\n";
 				warning "[eventMacro] Ignoring automacro '$name' (multiple unique condition)\n";
 				next AUTOMACRO;
@@ -343,16 +342,16 @@ sub create_automacro_list {
 				}
 			}
 			
-			push( @{ $currentConditions{$condition_module} }, $condition->{'value'} );
+			push( @{ $current_conditions{$condition_module} }, $condition->{'value'} );
 			
 		}
 		
 		####################################
 		#####Automacro Object Creation
 		####################################
-		$currentAutomacro = new eventMacro::Automacro($name, \%currentParameters);
-		my $new_index = $self->{Automacro_List}->add($currentAutomacro);
-		$self->{Automacro_List}->get($new_index)->parse_and_create_conditions(\%currentConditions);
+		$current_automacro = new eventMacro::Automacro($name, \%current_parameters);
+		my $new_index = $self->{Automacro_List}->add($current_automacro);
+		$self->{Automacro_List}->get($new_index)->parse_and_create_conditions(\%current_conditions);
 	}
 }
 
@@ -505,9 +504,8 @@ sub create_callbacks {
 		
 	}
 	
-	my $event_sub = sub { 
-		my $name = shift;
-		my $args = shift;
+	my $event_sub = sub {
+		my ($name, $args) = @_;
 		my $check_list_hash = $self->{Event_Related_Hooks}{$name};
 		$self->manage_event_callbacks('hook', $name, $args, $check_list_hash); 
 	};
@@ -647,8 +645,6 @@ sub activated_sub_callback {
 		}
 	}
 }
-
-use Data::Dumper;
 
 sub deactivated_sub_callback {
 	my ($self, $variable_type, $variable_name, $before_value, $complement, $nest_complement) = @_;
@@ -820,7 +816,7 @@ sub get_scalar_var {
 		elsif ( $variable_name eq '.minute' )     { return ( localtime() )[1]; }
 		elsif ( $variable_name eq '.hour' )       { return ( localtime() )[2]; }
 		elsif ( $variable_name eq '.dayofmonth' ) { return ( localtime() )[3]; }
-		elsif ( $variable_name eq '.dayofweek' )  { 
+		elsif ( $variable_name eq '.dayofweek' )  {
 			my @wday = qw/Monday Tuesday Wednesday Thursday Friday Saturday Sunday+/;
 			return $wday[ (localtime())[6] - 1 ];
 		}
@@ -893,9 +889,11 @@ sub is_scalar_var_defined {
 	my ($self, $variable_name) = @_;
 	return ((exists $self->{Scalar_Variable_List_Hash}{$variable_name} && defined $self->{Scalar_Variable_List_Hash}{$variable_name}) ? 1 : 0);
 }
-#########
 
-# Arrays
+
+####################################################
+#                     Arrays                       #
+####################################################
 sub set_full_array {
 	my ($self, $variable_name, $list) = @_;
 	
@@ -1067,9 +1065,12 @@ sub is_array_var_defined {
 	my ($self, $variable_name, $index) = @_;
 	return ((exists $self->{Array_Variable_List_Hash}{$variable_name} && defined $self->{Array_Variable_List_Hash}{$variable_name}[$index]) ? 1 : 0);
 }
-#######
 
-# Hahes
+
+
+####################################################
+#                     Hashes                       #
+####################################################
 sub set_full_hash {
 	my ($self, $variable_name, $hash) = @_;
 	
@@ -1469,7 +1470,7 @@ sub AI_start_checker {
 		
 		my $automacro = $self->{Automacro_List}->get($array_member->{index});
 		
-		next unless $automacro->is_timed_out;	
+		next unless $automacro->is_timed_out;
 		message "[eventMacro] Conditions met for automacro '".$automacro->get_name()."', calling macro '".$automacro->get_parameter('call')."'\n", "system";
 		
 		$self->call_macro($automacro);
@@ -1522,7 +1523,7 @@ sub call_macro {
 		# Update $.param[0] with the values from the call.
 		$eventMacro->set_full_array( ".param", \@params);
 
-		$automacro->set_call('call', $macro_name);
+		$automacro->set_call($macro_name);
 	}
 	
 	$automacro->set_timeout_time(time);

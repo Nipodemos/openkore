@@ -87,7 +87,7 @@ sub get_parameter {
 }
 
 sub set_call {
-	my ($self, $parameters, $macro_name) = @_;
+	my ($self, $macro_name) = @_;
 	$self->{parameters}{'call'} = $macro_name;
 }
 
@@ -99,40 +99,18 @@ sub set_parameters {
 		$self->{parameters}{$key} = $value;
 	}
 	#all parameters must be defined
-	if (!defined $self->{parameters}{'timeout'}) {
-		$self->{parameters}{'timeout'} = 0;
-	}
-	if (!defined $self->{parameters}{'delay'}) {
-		$self->{parameters}{'delay'} = 0;
-	}
-	if (!defined $self->{parameters}{'run-once'}) {
-		$self->{parameters}{'run-once'} = 0;
-	}
-	if (!defined $self->{parameters}{'CheckOnAI'}) {
-		$self->{parameters}{'CheckOnAI'} = $config{eventMacro_CheckOnAI};
-	}
-	if (!defined $self->{parameters}{'disabled'}) {
-		$self->{parameters}{'disabled'} = 0;
-	}
-	if (!defined $self->{parameters}{'overrideAI'}) {
-		$self->{parameters}{'overrideAI'} = 0;
-	}
-	if (!defined $self->{parameters}{'orphan'}) {
-		$self->{parameters}{'orphan'} = $config{eventMacro_orphans};
-	}
-	if (!defined $self->{parameters}{'macro_delay'}) {
-		$self->{parameters}{'macro_delay'} = $timeout{eventMacro_delay}{timeout};
-	}
-	if (!defined $self->{parameters}{'priority'}) {
-		$self->{parameters}{'priority'} = 0;
-	}
-	if (!defined $self->{parameters}{'exclusive'}) {
-		$self->{parameters}{'exclusive'} = 0;
-	}
-	if (!defined $self->{parameters}{'repeat'}) {
-		$self->{parameters}{'repeat'} = 1;
-	}
-	$self->{parameters}{time} = 0;
+	$self->{parameters}{timeout}     ||= 0;
+	$self->{parameters}{delay}       ||= 0;
+	$self->{parameters}{run-once}    ||= 0;
+	$self->{parameters}{CheckOnAI}   ||= $config{eventMacro_CheckOnAI};
+	$self->{parameters}{disabled}    ||= 0;
+	$self->{parameters}{overrideAI}  ||= 0;
+	$self->{parameters}{orphan}      ||= $config{eventMacro_orphans};
+	$self->{parameters}{macro_delay} ||= $timeout{eventMacro_delay}{timeout};
+	$self->{parameters}{priority}    ||= 0;
+	$self->{parameters}{exclusive}   ||= 0;
+	$self->{parameters}{repeat}      ||= 1;
+	$self->{parameters}{time}        ||= 0;
 }
 
 sub parse_CheckOnAI {
@@ -150,9 +128,11 @@ sub parse_CheckOnAI {
 
 sub create_conditions_list {
 	my ($self, $conditions) = @_;
-	foreach (keys %{$conditions}) {
-		my $module = $_;
-		my $conditionsText = $conditions->{$_};
+	use Log qw(warning);
+	use Data::Dumper;
+	warning(Dumper($conditions));
+	foreach my $module (keys %{$conditions}) {
+		my $conditionsText = $conditions->{$module};
 		eval "use $module";
 		foreach my $newConditionText ( @{$conditionsText} ) {
 			my $cond = $module->new( $newConditionText, $self->{listIndex} );
