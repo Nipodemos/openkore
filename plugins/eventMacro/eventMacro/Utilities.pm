@@ -9,12 +9,13 @@ our @EXPORT_OK = qw(q4rx q4rx2 between cmpr match getArgs getnpcID getPlayerID
 	getMonsterID getVenderID getItemIDs getItemPrice getInventoryIDs getInventoryTypeIDs getStorageIDs getSoldOut getInventoryAmount
 	getCartAmount getShopAmount getStorageAmount getVendAmount getRandom getRandomRange getConfig
 	getWord call_macro getArgFromList getListLenght sameParty processCmd find_variable get_key_or_index getInventoryAmountbyID
-	getStorageAmountbyID getCartAmountbyID getQuestStatus);
+	getStorageAmountbyID getCartAmountbyID getQuestStatus get_pattern find_hash_and_get_keys find_hash_and_get_values);
 
 use Utils;
 use Globals;
 use AI;
 use Log qw(message error warning debug);
+use Utils qw(parseArgs);
 
 use eventMacro::Core;
 use eventMacro::Data;
@@ -30,9 +31,12 @@ sub between {
 sub cmpr {
 	my ($first, $cond, $second) = @_;
 	
-	if (!defined $first || !defined $cond || !defined $second) {
-		# this produces a warning but that's what we want
-		error "cmpr: wrong # of arguments ($first) ($cond) ($second)\n", "eventMacro";
+	if (defined $first && !defined $cond & !defined $second) {
+		if ($first eq '' || $first == 0) {
+			return 0;
+		} else {
+			return 1;
+		}
 		
 	} elsif ($first =~ /^\s*(-?[\d.]+)\s*\.{2}\s*(-?[\d.]+)\s*$/) {
 		my ($first1, $first2) = ($1, $2);
@@ -45,9 +49,11 @@ sub cmpr {
 				
 			} else {
 				error "cmpr: Range operations must be of equality or inequality\n", "eventMacro";
+				return;
 			}
 		}
 		error "cmpr: wrong # of arguments ($first) ($cond) ($second)\n--> ($second) <-- maybe should be numeric?\n", "eventMacro";
+		return;
 		
 	} elsif ($second =~ /^\s*(-?[\d.]+)\s*\.{2}\s*(-?[\d.]+)\s*$/) {
 		my ($second1, $second2) = ($1, $2);
@@ -60,22 +66,24 @@ sub cmpr {
 				
 			} else {
 				error "cmpr: Range operations must be of equality or inequality\n", "eventMacro";
+				return;
 			}
 		}
 		error "cmpr: wrong # of arguments ($first) ($cond) ($second)\n--> ($first) <-- maybe should be numeric?\n", "eventMacro";
+		return;
 		
 	} elsif ($first =~ /^-?[\d.]+$/ && $second =~ /^-?[\d.]+$/) {
 		return ($first == $second ? 1 : 0) if (($cond eq "=" || $cond eq "=="));
 		return ($first >= $second ? 1 : 0) if ($cond eq ">=");
 		return ($first <= $second ? 1 : 0) if ($cond eq "<=");
-		return ($first > $second  ? 1 : 0) if ($cond eq ">");
-		return ($first < $second  ? 1 : 0) if ($cond eq "<");
+		return ($first >  $second ? 1 : 0) if ($cond eq ">");
+		return ($first <  $second ? 1 : 0) if ($cond eq "<");
 		return ($first != $second ? 1 : 0) if ($cond eq "!=");
 		
 	} elsif (($cond eq "=" || $cond eq "==")) {
 		return ($first eq $second ? 1 : 0);
 		
-	} elsif ($cond eq "!=" && $first ne $second) {
+	} elsif ($cond eq "!=") {
 		return ($first ne $second ? 1 : 0);
 		
 	} elsif ($cond eq "~") {
@@ -85,7 +93,7 @@ sub cmpr {
 		}
 		
 	} elsif ($cond eq "=~" && $second =~ /^\/.*?\/\w?\s*$/) {
-		return match($first, $second, 1);
+		return match($first, $second);
 	}
 
 	return 0;
@@ -106,30 +114,26 @@ sub q4rx2 {
 }
 
 sub match {
-	my ($text, $kw, $cmpr) = @_;
+	my ($text_to_be_compared, $regex) = @_;
 
-	unless (defined $text && defined $kw) {
+	unless (defined $text_to_be_compared && defined $regex) {
 		# this produces a warning but that's what we want
-		error "match: wrong # of arguments ($text) ($kw)\n", "eventMacro";
-		return 0
+		error "match: wrong # of arguments ($text_to_be_compared) ($regex)\n", "eventMacro";
+		return;
 	}
 
-	if ($kw =~ /^"(.*?)"$/) {
-		return $text eq $1
-	}
-
-	if ($kw =~ /^\/(.*?)\/(\w?)$/) {
-		if ($text =~ /$1/ || ($2 eq 'i' && $text =~ /$1/i)) {
-			if (!defined $cmpr) {
-				no strict;
-				foreach my $idx (1..$#-) {$eventMacro->set_scalar_var(".lastMatch$idx",${$idx})}
-				use strict;
-			}
-			return 1
+	if ($regex =~ /^\/(.*?)\/(\w?)$/) {
+		if ($text_to_be_compared =~ /$1/ || ($2 eq 'i' && $text_to_be_compared =~ /$1/i)) {
+			no strict;
+			foreach my $idx (1..$#-) {$eventMacro->set_scalar_var(".lastMatch$idx",${$idx})}
+			use strict;
+			return 1;
+		} else {
+			return 0;
 		}
 	}
 
-	return 0
+	return;
 }
 
 sub getArgs {
@@ -484,6 +488,13 @@ sub getRandomRange {
 	return int(rand($high-$low+1))+$low if (defined $high && defined $low)
 }
 
+sub get_pattern {
+	my ($inside_brackets) = @_;
+	my ($pattern, $var_str) = parseArgs($inside_brackets, undef, ',');
+	$var_str =~ s/^\s+|\s+$//gos;
+	return $pattern, $var_str;
+}
+
 sub find_variable {
 	my ($text) = @_;
 	
@@ -588,6 +599,16 @@ sub get_key_or_index {
 		$key_index .= $current;
 	}
 	return undef;
+}
+
+sub find_hash_and_get_keys {
+	my ($var) = find_variable(@_);
+	return @{$eventMacro->get_hash_keys($var->{real_name})};
+}
+
+sub find_hash_and_get_values {
+	my ($var) = find_variable(@_);
+	return @{$eventMacro->get_hash_values($var->{real_name})};
 }
 
 1;

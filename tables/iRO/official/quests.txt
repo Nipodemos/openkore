@@ -22272,3 +22272,293 @@ Campitor might be right outside Juno according to the Band Members.#
 63180#Poring Con#SG_FEEL#QUE_NOIMAGE#
 Maybe the Poring Con Volunteer at the entrance knows about Camp?#
 #
+
+63187#Poring Con - Cosplay Scavenger Hunt#SG_FEEL#QUE_NOIMAGE#
+There is a 22 hour cooldown on this quest.#
+Come back to hunt for cosplays again later!#
+
+63188#Poring Con - Help Cosplayer Freya#SG_FEEL#QUE_NOIMAGE#
+There is a 22 hour cooldown on this quest.#
+Come back to help Freya again!#
+
+
+//The Illusion of Moonlight
+
+7776#Suspicious Sign#SG_FEEL#QUE_NOIMAGE#
+The Elders of Payon are worried about the apprentice Soul Linker, Muyeon, who disappeared during a ritual. I should talk to the young scholar at the entrance to the Payon Cave.#
+Talk to Young Scholar.#
+
+7777#What Happened?#SG_FEEL#QUE_NOIMAGE#
+Muyeon left for the detached palace. The young scholar wants to ask her what happened.#
+Talk to Muyeon.#
+
+7778#What Muyeon Saw#SG_FEEL#QUE_NOIMAGE#
+Muyeon is agitated by something she saw during the purging ritual. She said I should see it for myself.#
+Talk to Muyeon.#
+
+7779#Distressing Ritual#SG_FEEL#QUE_NOIMAGE#
+Muyeon says she could let me have a first-hand experience of the purging ritual. I'd better brace myself and talk to her.#
+Talk to Muyeon.#
+
+7780#Nightmare in the Ruined Village#SG_FEEL#QUE_NOIMAGE#
+I blacked out during the ritual and arrived at the ruined village inside Payon Cave. Is this shimmering portal in front of me connected to the nightmare that Muyeon told me about?#
+Investigate the shimmering portal.#
+
+7781#Nightmare in the Ruined Village#SG_FEEL#QUE_NOIMAGE#
+The young scholar was sucked into the shimmering portal in the ruined village inside the Payon Cave.#
+Talk to Chunghae on the other side of the portal.#
+
+7782#Stop the Wizard!#SG_FEEL#QUE_NOIMAGE#
+Scholar Chunghae in the Nightmare of the Moonlight Flower dungeon thinks the ^4d4dffWizard of the Truth^000000 is responsible for this incident. He asked me to take care of him.#
+Eliminate 1 Wizard of the Truth.#
+
+7783#Stop the Wizard! - Pending#SG_FEEL#QUE_NOIMAGE#
+You can re-receive this Daily quest from Scholar Chunghae in the Nightmare of the Moonlight Flower dungeon after it cools down.#
+Reset at 4:00 a.m.#
+
+7784#No Mercy for Illusions#SG_FEEL#QUE_NOIMAGE#
+Soldier Junghee in the Nightmare of the Moonlight Flower dungeon asked me to clear the area around him of ^4d4dffAngry Nine Tails^000000.#
+Eliminate Angry Nine Tails.#
+
+7785#No Mercy for Illusions - Pending#SG_FEEL#QUE_NOIMAGE#
+You can re-receive this Daily quest from Soldier Junghee in the Nightmare of the Moonlight Flower dungeon after it cools down.#
+Reset at 4:00 a.m.#
+
+7786#Remembering My Ancestors#SG_FEEL#QUE_NOIMAGE#
+Soldier Junghee in the Nightmare of the Moonlight Flower dungeon asked me to send ^4d4dffResentful Soldiers^000000 to Heaven.#
+Eliminate Resentful Soldiers.#
+
+7787#Remebering My Ancestors - Pending#SG_FEEL#QUE_NOIMAGE#
+You can re-receive this Daily quest from Soldier Junghee in the Nightmare of the Moonlight Flower dungeon after it cools down.#
+Reset at 4:00 a.m.#
+
+7788#Back to Muyeon#SG_FEEL#QUE_NOIMAGE#
+Relay Chunghae's investigation results to ^4d4dffMuyeon^000000 in the ^4d4dffDetached Payon Palace^000000.#
+Talk to Muyeon in the Detached Palace.#
+
+//Halloween 2018
+
+63223#A Supermundane Murder Mystery#SG_FEEL#QUE_NOIMAGE#
+
+And your trick or treating begins... speak to the Crying Kid again if you haven't already.#
+
+#
+
+63224#A Supermundane Murder Mystery#SG_FEEL#QUE_NOIMAGE#
+
+Start by examining the body.#
+
+#
+
+63225#A Supermundane Murder Mystery#SG_FEEL#QUE_NOIMAGE#
+
+Maybe there is a clue on the floor...#
+
+#
+
+63226#A Supermundane Murder Mystery#SG_FEEL#QUE_NOIMAGE#
+
+So there are wet footprints. Where could these have come from?#
+
+#
+
+63227#A Supermundane Murder Mystery#SG_FEEL#QUE_NOIMAGE#
+
+There's a book here. I should check the study room.#
+
+#
+
+63228#A Supermundane Murder Mystery#SG_FEEL#QUE_NOIMAGE#
+
+I should check the dresser. He had to have changed out of his clothes to take a bath.#
+
+#
+
+63229#A Supermundane Murder Mystery#SG_FEEL#QUE_NOIMAGE#
+
+Inform Detective Squirrel and Moose about the sketchy candy wrappers.#
+
+#
+
+63230#A Supermundane Murder Mystery#SG_FEEL#QUE_NOIMAGE#
+
+Looks like you've discovered the source of the mysterious candy. Go back and speak to Jane.#
+
+#
+
+//Sleigh To Yesterday
+
+63233#Sleigh To Yesterday#SG_FEEL#QUE_NOIMAGE#
+
+Gather the materials for Doc Holiday and Marvy McChonChon. They need 20 Ectoplasm, 3 Iron Ore, and 1 Zargon.#
+
+Bring back 20 Ectoplasm, 3 Iron Ore, and 1 Zargon.#
+
+63234#Sleigh To Yesterday#SG_FEEL#QUE_NOIMAGE#
+
+Speak to Doc Holiday again to see if he's completed repairs on the Sledorian.#
+
+Speak to Doc Holiday again.#
+
+63235#Sleigh To Yesterday#SG_FEEL#QUE_NOIMAGE#
+
+Prepare yourself for... time travel???? Speak to Doc Holiday again once you're ready.#
+
+Speak to Doc Holiday again once you're ready.#
+
+63236#Sleigh To Yesterday#SG_FEEL#QUE_NOIMAGE#
+
+You can sleigh back to yesterday in 8 hours.#
+
+You can sleigh back to yesterday in 8 hours.#
+
+63237#Sleigh To Yesterday#SG_FEEL#QUE_NOIMAGE#
+
+Stop Antonio from changing the future!#
+
+Stop Antonio from changing the future!#
+
+
+62141#Janeway's Request#SG_FEEL#QUE_NOIMAGE#
+Hunt the Following#
+Poring : 10#
+
+62142#Janeway's Request#SG_FEEL#QUE_NOIMAGE#
+Hunt the Following#
+Thief Bug : 20#
+
+62143#Janeway's Request#SG_FEEL#QUE_NOIMAGE#
+Hunt the Following#
+Zombie : 30#
+
+62144#Janeway's Request#SG_FEEL#QUE_NOIMAGE#
+Hunt the Following#
+Boa : 30#
+
+62145#Janeway's Request#SG_FEEL#QUE_NOIMAGE#
+Hunt the Following#
+Thara Frog : 40#
+
+62146#Janeway's Request#SG_FEEL#QUE_NOIMAGE#
+Hunt the Following#
+Archer Skeleton : 60#
+
+62147#Janeway's Request#SG_FEEL#QUE_NOIMAGE#
+Hunt the Following#
+Gargoyle : 70#
+
+63239#Token Hammer Cool Down#SG_FEEL#QUE_NOIMAGE#
+
+Let token hammer rest.#
+
+Let token hammer rest.#
+
+63242#Ragnarok Of Love#SG_FEEL#QUE_NOIMAGE#
+
+Find Carl.#
+
+Find Carl.#
+
+14651#Decision on divorce should be made cautiously#SG_FEEL#QUE_NOIMAGE#
+You have 4 days before the divorce process go through. Please make sure that you have enough talk with your spouse during this period. You can always withdraw your divorce application during the processing period or you can just complete the divorce process. - Prontera office: Divorce officer Norton #
+I will see you in 4 days.#
+
+
+
+63040#Pub Crawler#SG_FEEL#QUE_NOIMAGE#
+You have introduced yourself to the first Prontera Brewmaster.#
+#
+
+63041#Pub Crawler#SG_FEEL#QUE_NOIMAGE#
+You have introduced yourself to the second Prontera Brewmaster.#
+#
+
+63042#Pub Crawler#SG_FEEL#QUE_NOIMAGE#
+You have introduced yourself to the Geffen Brewmaster.#
+#
+
+63043#Pub Crawler#SG_FEEL#QUE_NOIMAGE#
+You have introduced yourself to the Aldebaran Brewmaster.#
+#
+
+63044#Pub Crawler#SG_FEEL#QUE_NOIMAGE#
+You have received the Pub Crawl Prize#
+#
+
+63045#Pub Crawler#SG_FEEL#QUE_NOIMAGE#
+The first Prontera Brewmaster can't accept more supplies until the timer is finished.#
+#
+
+63046#Pub Crawler#SG_FEEL#QUE_NOIMAGE#
+The second Prontera Brewmaster can't accept more supplies until the timer is finished.#
+#
+
+63047#Pub Crawler#SG_FEEL#QUE_NOIMAGE#
+The Geffen Brewmaster can't accept more supplies until the timer is finished.#
+#
+
+63048#Pub Crawler#SG_FEEL#QUE_NOIMAGE#
+The Aldebaran Brewmaster can't accept more supplies until the timer is finished.#
+#
+
+63049#Pub Crawler#SG_FEEL#QUE_NOIMAGE#
+Explore Duffy's Pub Crawl#
+#
+63039#Pub Crawler#SG_FEEL#QUE_NOIMAGE#
+Explore Duffy's Pub Crawl.#
+#
+
+
+63243#A Simple Request#SG_FEEL#QUE_NOIMAGE#
+
+Mema Coco needed: 12x J_llop, 12x Zar_on, 9x B_tt_rf_y W__g, 1x B_ac_ Ro_e, and 1x Pa_tie.#
+
+Get Mema Coco's Groceries.#
+
+63244#A Simple Request#SG_FEEL#QUE_NOIMAGE#
+
+Mema Coco wants you to go into Knut's dreams and get rid of the demon possessing him.#
+
+Help rid the demon in Knut's dreams.#
+
+
+//Illusion of Frozen
+15110#Fighting Ice with Fire#SG_FEEL#QUE_NOIMAGE#
+Collect Dry Twigs to thaw out Zeith and Vrid in the Ice Cave.#
+Collect 10 Dry Twigs.#
+
+15111#Hunt Furious Ice Titans#SG_FEEL#QUE_NOIMAGE#
+Vrid wants to break the ice with ice. Hunt 10 Furious Ice Titans.#
+Hunt 10 Furious Ice Titans.#
+
+15112#Direct Approach#SG_FEEL#QUE_NOIMAGE#
+Let's just break the ice by hitting it. Hit the ice around Zeith first.#
+Hit Zeith to break the ice around him.#
+
+15113#Direct Approach#SG_FEEL#QUE_NOIMAGE#
+Let's just break the ice by hitting it. Hit the ice around Vrid first.#
+Hit Vrid to break the ice around him.#
+
+15114#Catch a Strange Lizard#SG_FEEL#QUE_NOIMAGE#
+Vrid and Zeith want to get revenge on the strange lizard that froze them. Eliminate Ktullanux in the center of the cave.#
+Eliminate Awakened Ktullanux.#
+
+15115#Vrid and Zeith#SG_FEEL#QUE_NOIMAGE#
+You can re-receive this quest after 4:00 a.m.#
+Quest resets at 4:00 a.m.#
+
+15116#Clear the Illusion of the Frozen#SG_FEEL#QUE_NOIMAGE#
+#
+#
+
+15117#Hunt Furious Gazetis#SG_FEEL#QUE_NOIMAGE#
+Vrid wants to break the ice with ice. Hunt 10 Furious Gazetis.#
+Hunt 10 Furious Gazetis.#
+
+15118#Hunt Furious Snowiers#SG_FEEL#QUE_NOIMAGE#
+Vrid wants to break the ice with ice. Hunt 10 Furious Snowiers.#
+Hunt 10 Furious Snowiers.#
+
+15119#Hunt Hard Icicles#SG_FEEL#QUE_NOIMAGE#
+Vrid wants to break the ice with ice. Hunt 10 Hard Icicles.#
+Hunt 10 Hard Icicles.#

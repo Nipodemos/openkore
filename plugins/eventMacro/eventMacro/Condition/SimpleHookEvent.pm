@@ -4,8 +4,8 @@ use strict;
 
 use base 'eventMacro::Condition';
 
-use eventMacro::Data;
-use eventMacro::Utilities qw(find_variable);
+use eventMacro::Data qw( EVENT_TYPE );
+use eventMacro::Utilities qw( find_variable );
 
 sub _parse_syntax {
 	my ( $self, $condition_code ) = @_;
@@ -41,14 +41,19 @@ sub get_new_variable_list {
 	
 	$new_variables->{".".$self->{name}."Last"} = $self->{last_hook};
 	while( my( $key, $value ) = each %{$self->{vars}} ){
-		$new_variables->{".".$self->{name}."Last".ucfirst($key)} = $value;
+		if (ref($value) eq 'ARRAY') {
+			for (my $i; $i < @{$value}.length ; $i++) {
+				$new_variables->{".".$self->{name}."Last".ucfirst($key).$i} = $value->[$i];
+			}
+		} else{
+			$new_variables->{".".$self->{name}."Last".ucfirst($key)} = $value;
+		}
 	}
 	
 	return $new_variables;
 }
 
 sub condition_type {
-	my ($self) = @_;
 	EVENT_TYPE;
 }
 

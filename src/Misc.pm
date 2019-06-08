@@ -131,7 +131,6 @@ our @EXPORT = (
 	getResponse
 	getSpellName
 	headgearName
-	initUserSeed
 	itemLog_clear
 	look
 	lookAtPosition
@@ -1046,14 +1045,14 @@ sub actorAdded {
 				"ObjectList:\n" .
 				$ol;
 		}
-		assert(binSize($list) + 1 == $source->size()) if DEBUG;
+		should(binSize($list) + 1, $source->size()) if DEBUG;
 
 		binAdd($list, $actor->{ID});
 		$hash->{$actor->{ID}} = $actor;
 		objectAdded($type, $actor->{ID}, $actor);
 
-		assert(scalar(keys %{$hash}) == $source->size()) if DEBUG;
-		assert(binSize($list) == $source->size()) if DEBUG;
+		should(scalar(keys %{$hash}), $source->size()) if DEBUG;
+		should(binSize($list), $source->size()) if DEBUG;
 	} else {
 		warning "Unknown actor type in actorAdded\n", 'actorlist' if DEBUG;
 	}
@@ -1085,7 +1084,7 @@ sub actorRemoved {
 				"ObjectList:\n" .
 				$ol;
 		}
-		assert(binSize($list) - 1 == $source->size()) if DEBUG;
+		should(binSize($list) - 1, $source->size()) if DEBUG;
 
 		binRemove($list, $actor->{ID});
 		delete $hash->{$actor->{ID}};
@@ -1101,8 +1100,8 @@ sub actorRemoved {
 			delete $buyerLists{$actor->{ID}};
 		}
 
-		assert(scalar(keys %{$hash}) == $source->size()) if DEBUG;
-		assert(binSize($list) == $source->size()) if DEBUG;
+		should(scalar(keys %{$hash}), $source->size()) if DEBUG;
+		should(binSize($list), $source->size()) if DEBUG;
 	} else {
 		warning "Unknown actor type in actorRemoved\n", 'actorlist' if DEBUG;
 	}
@@ -1239,7 +1238,17 @@ sub charSelectScreen {
 			}
 		}
 		
-		my $messageMapName = sprintf(", %s", $chars[$num]{map_name}) if ($chars[$num]{map_name});
+		my $messageMapName;
+		
+		if (exists $chars[$num]{last_map} && $chars[$num]{last_map}) {
+			my $map_lut_key = $chars[$num]{last_map} . ".rsw";
+			
+			if (exists $maps_lut{$map_lut_key} && length $maps_lut{$map_lut_key} <= 16) {
+				$messageMapName = sprintf(", %s", $maps_lut{$map_lut_key});
+			} else {
+				$messageMapName = sprintf(", %s", $chars[$num]{last_map});
+			}
+		}
 		
 		push @charNames, TF("Slot %d: %s (%s, %s, level %d/%d%s)%s",
 			$num,
@@ -1254,11 +1263,10 @@ sub charSelectScreen {
 	}
 
 	if (@charNames) {
-		message(TF("------------- Character List -------------\n" .
-		           "%s\n" .
-		           "------------------------------------------\n",
-		           join("\n", @charNames)),
-		           "connection");
+		my $msg =  center(T(" Character List "), 79, '-') ."\n";
+		$msg .= join("\n", @charNames) ."\n";
+		$msg .= ('-'x79) . "\n";
+		message $msg, "connection";
 	}
 	return 1 if ($net->clientAlive && $net->version);
 
@@ -1663,8 +1671,8 @@ sub createCharacter {
 # Sends $player a deal request.
 sub deal {
 	my $player = $_[0];
-	assert(defined $player) if DEBUG;
-	assert(UNIVERSAL::isa($player, 'Actor::Player')) if DEBUG;
+	assert(defined $player, "Can't deal with undef player") if DEBUG;
+	assertClass($player, 'Actor::Player') if DEBUG;
 
 	$outgoingDeal{ID} = $player->{ID};
 	$messageSender->sendDeal($player->{ID});
@@ -2029,14 +2037,12 @@ sub itemName {
 		} sort { cardName($a) cmp cardName($b) } keys %cards);
 	}
 
+    my $total_options = 0;
+
 	my @options = grep { $_->{type} } map { my @c = unpack 'vvC', $_;{ type => $c[0], value => $c[1], param => $c[2] } } unpack '(a5)*', $item->{options} || '';
 	foreach ( @options ) {
-		if ( $_->{type} == 175 ) {
-			# Neutral element.
-		} elsif ( $_->{type} >= 176 && $_->{type} <= 184 ) {
-			$suffix = join ':', sort $elements_lut{ $_->{type} - 175 }, split ':', $suffix;
-		} else {
-			$suffix = join ':', sort "Option($_->{type},$_->{value},$_->{param})", split ':', $suffix;
+		if ( $_->{type} ) {
+			$total_options++;
 		}
 	}
 
@@ -2049,6 +2055,7 @@ sub itemName {
 	$display .= $name;
 	$display .= " [$suffix]" if $suffix;
 	$display .= " [$numSlots]" if $numSlots;
+	$display .= " [$total_options Option]" if $total_options;
 
 	return $display;
 }
@@ -2123,7 +2130,7 @@ sub storageGet {
 # items: reference to an array of Actor::Items.
 # amount: the maximum amount to get, for each item, or 0 for unlimited.
 # source: where the items come from; one of 'inventory', 'storage', 'cart'
-# target: where the items shoudl go; one of 'inventory', 'storage', 'cart'
+# target: where the items should go; one of 'inventory', 'storage', 'cart'
 #
 # Transfer one or more items from their current location to another location.
 #
@@ -2172,6 +2179,7 @@ sub headgearName {
 #
 # Generate a unique seed for the current user and save it to
 # a file, or load the seed from that file if it exists.
+=pod
 sub initUserSeed {
 	my $seedFile = "$Settings::logs_folder/seed.txt";
 	my $f;
@@ -2198,6 +2206,7 @@ sub initUserSeed {
 		}
 	}
 }
+=cut
 
 sub itemLog_clear {
 	if (-f $Settings::item_log_file) { unlink($Settings::item_log_file); }
@@ -2440,16 +2449,28 @@ sub positionNearPortal {
 }
 
 ##
-# printItemDesc(itemID)
+# printItemDesc(obj $item)
 #
-# Print the description for $itemID.
+# Print the description for $item.
 sub printItemDesc {
-	my $itemID = shift;
-	my $itemName = itemNameSimple($itemID);
-	my $description = $itemsDesc_lut{$itemID} || T("Error: No description available.\n");
-	message TF("===============Item Description===============\nItem: %s (ID: %s)\n\n", $itemName, $itemID), "info";
-	message($description, "info");
-	message("==============================================\n", "info");
+	my $item = shift;
+
+	my $description = $itemsDesc_lut{$item->{nameID}} || T("Error: No description available.\n");
+	my $msg =  center(T(" Item Description "), 79, '-') ."\n";
+	$msg .= TF("Item: %s, ID: %s, Amount: %s\n\n", $item->{name}, $item->{nameID}, $item->{amount}), "info";
+	my @options = grep { $_->{type} } map { my @c = unpack 'vvC', $_;{ type => $c[0], value => $c[1], param => $c[2] } } unpack '(a5)*', $item->{options} || '';
+	my $option_index = 1;
+	foreach ( @options ) {
+		if ( $itemOptionHandle{$_->{type}} && $itemOption_lut{$itemOptionHandle{$_->{type}}} ) {
+			$msg .= TF("OPTION %s: ", $option_index) . sprintf($itemOption_lut{$itemOptionHandle{$_->{type}}}, $_->{value}) . "\n";
+		} else {
+			$msg .= TF("OPTION %s: Option (%d, %d, %d)\n", $option_index, $_->{type}, $_->{value},$_->{param});
+		}
+		$option_index++;
+	}
+	$msg .=  $description;
+	$msg .= ('-'x79) . "\n";
+	message $msg, "info";
 }
 
 sub processNameRequestQueue {
@@ -2646,8 +2667,8 @@ sub setPartySkillTimer {
 # TODO: move to Actor?
 sub setStatus {
 	my ($actor, $opt1, $opt2, $option) = @_;
-	assert(defined $actor) if DEBUG;
-	assert(UNIVERSAL::isa($actor, 'Actor')) if DEBUG;
+	assert(defined $actor, "Can't set status of undef actor") if DEBUG;
+	assertClass($actor, 'Actor') if DEBUG;
 	my $verbosity = $actor->{ID} eq $accountID ? 1 : 2;
 	my $changed = 0;
 
@@ -2772,8 +2793,8 @@ sub countCastOn {
 
 	my $source = Actor::get($sourceID);
 	my $target = Actor::get($targetID);
-	assert(UNIVERSAL::isa($source, 'Actor')) if DEBUG;
-	assert(UNIVERSAL::isa($target, 'Actor')) if DEBUG;
+	assertClass($source, 'Actor') if DEBUG;
+	assertClass($target, 'Actor') if DEBUG;
 
 	if ($targetID eq $accountID) {
 		$source->{castOnToYou}++;
@@ -3310,6 +3331,7 @@ sub useTeleport {
 			unless ($item) { $item = $char->inventory->getByNameID(12323); } # only if we don't have any fly wing
 		} else {
 			$item = $char->inventory->getByName($config{teleportAuto_item1});
+			$item = $char->inventory->getByNameID($config{teleportAuto_item1}) if (!($item) && $config{teleportAuto_item1} =~ /^\d{3,}$/);
 		}
 	} elsif ($use_lvl == 2) { #Butterfly Wing
 		if (!$config{teleportAuto_item2}) {
@@ -3317,6 +3339,7 @@ sub useTeleport {
 			unless ($item) { $item = $char->inventory->getByNameID(12324); } # only if we don't have any butterfly wing
 		} else {
 			$item = $char->inventory->getByName($config{teleportAuto_item2});
+			$item = $char->inventory->getByNameID($config{teleportAuto_item2}) if (!($item) && $config{teleportAuto_item2} =~ /^\d{3,}$/);
 		}
 	}
 
@@ -3564,8 +3587,8 @@ sub isSafeActorQuery {
 # Generates a proper message string for when actor $source attacks actor $target.
 sub attack_string {
 	my ($source, $target, $damage, $delay) = @_;
-	assert(UNIVERSAL::isa($source, 'Actor')) if DEBUG;
-	assert(UNIVERSAL::isa($target, 'Actor')) if DEBUG;
+	assertClass($source, 'Actor') if DEBUG;
+	assertClass($target, 'Actor') if DEBUG;
 
 	return TF("%s %s %s (Dmg: %s) (Delay: %sms)\n",
 		$source->nameString,
@@ -3576,8 +3599,8 @@ sub attack_string {
 
 sub skillCast_string {
 	my ($source, $target, $x, $y, $skillName, $delay) = @_;
-	assert(UNIVERSAL::isa($source, 'Actor')) if DEBUG;
-	assert(UNIVERSAL::isa($target, 'Actor')) if DEBUG;
+	assertClass($source, 'Actor') if DEBUG;
+	assertClass($target, 'Actor') if DEBUG;
 	
 	return TF("%s %s %s on %s (Delay: %sms)\n",
 		$source->nameString(),
@@ -3589,8 +3612,8 @@ sub skillCast_string {
 
 sub skillUse_string {
 	my ($source, $target, $skillName, $damage, $level, $delay) = @_;
-	assert(UNIVERSAL::isa($source, 'Actor')) if DEBUG;
-	assert(UNIVERSAL::isa($target, 'Actor')) if DEBUG;
+	assertClass($source, 'Actor') if DEBUG;
+	assertClass($target, 'Actor') if DEBUG;
 
 	return sprintf("%s %s %s%s %s %s%s%s\n",
 		$source->nameString(),
@@ -3605,7 +3628,7 @@ sub skillUse_string {
 
 sub skillUseLocation_string {
 	my ($source, $skillName, $args) = @_;
-	assert(UNIVERSAL::isa($source, 'Actor')) if DEBUG;
+	assertClass($source, 'Actor') if DEBUG;
 	
 	return sprintf("%s %s %s%s %s (%d, %d)\n",
 		$source->nameString(),
@@ -3620,8 +3643,8 @@ sub skillUseLocation_string {
 # TODO: maybe add other healing skill ID's?
 sub skillUseNoDamage_string {
 	my ($source, $target, $skillID, $skillName, $amount) = @_;
-	assert(UNIVERSAL::isa($source, 'Actor')) if DEBUG;
-	assert(UNIVERSAL::isa($target, 'Actor')) if DEBUG;
+	assertClass($source, 'Actor') if DEBUG;
+	assertClass($target, 'Actor') if DEBUG;
 
 	return sprintf("%s %s %s %s %s%s\n",
 		$source->nameString(),
@@ -3634,7 +3657,7 @@ sub skillUseNoDamage_string {
 
 sub status_string {
 	my ($source, $statusName, $mode, $seconds) = @_;
-	assert(UNIVERSAL::isa($source, 'Actor')) if DEBUG;
+	assertClass($source, 'Actor') if DEBUG;
 
 	# Translation Comment: "you/actor" "are/is now/again/nolonger" "status" "(duration)"
 	TF("%s %s: %s%s\n",
@@ -4332,6 +4355,17 @@ sub checkSelfCondition {
 
 		return 0 unless inRange($amountInRange, $config{$prefix."_whenPartyMembersNear"});
 	}
+	
+	if ($config{$prefix . "_inParty"}) {
+		return 0 unless $char->{party}{joined};
+	}
+	
+	if ($config{$prefix . "_notInParty"}) {
+		return 0 if $char->{party}{joined};
+	}
+	
+	return 0 if ($config{$prefix . "_maxBase"} =~ /^\d{1,}$/ && $char->{lv} > $config{$prefix . "_maxBase"});
+	return 0 if ($config{$prefix . "_minBase"} =~ /^\d{1,}$/ && $char->{lv} < $config{$prefix . "_minBase"});
 
 	my %hookArgs;
 	$hookArgs{prefix} = $prefix;
@@ -4898,22 +4932,22 @@ sub CharacterLogin {
 sub searchStoreInfo {
 	my ($page) = @_;
 	
-	message T("============================================== Search Store Result ==============================================\n");
-	message TF("Page: %d/%d\n", $page + 1, scalar(@{$universalCatalog{list}}));
-	message(swrite("@<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< @<<<<<<<<<<<<< @<<<<<<<",
-		["#", T("Shop Name"), T("Item"), T("Price"), T("Amount")]));
+	my $msg =  center(T(" Search Store Result "), 79, '-') ."\n";
+	$msg .= TF("Page: %d/%d\n", $page + 1, scalar(@{$universalCatalog{list}}));
+	$msg .= swrite("@<< @<<<<<<<<<<<<<<<<<<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< @<<<<<< @>>>>>>>>>>",
+			["#", T("Shop Name"), T("Item"), T("Amount"), T("Price")]);
 	
 	for (my $i = 0; $i < scalar(@{${$universalCatalog{list}}[$page]}); ++$i) {
-		message(swrite("@<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< @<<<<<<<<<<<<< @<<<<<<<",
+		$msg .= swrite("@<< @<<<<<<<<<<<<<<<<<<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< @<<<<<< @>>>>>>>>>>",
 				[$i, ${$universalCatalog{list}}[$page][$i]{shopName},
 				itemName({
 					nameID => ${$universalCatalog{list}}[$page][$i]{nameID},
 					cards => ${$universalCatalog{list}}[$page][$i]{cards_nameID},
 					upgrade => ${$universalCatalog{list}}[$page][$i]{refine}
-				}), formatNumber(${$universalCatalog{list}}[$page][$i]{price}), ${$universalCatalog{list}}[$page][$i]{amount}]), "list");
+				}), ${$universalCatalog{list}}[$page][$i]{amount}, formatNumber(${$universalCatalog{list}}[$page][$i]{price})]);
 	}
-	
-	message T("=================================================================================================================\n");
+	$msg .= ('-'x79) . "\n";
+	message $msg, "list";
 }
 
 return 1;

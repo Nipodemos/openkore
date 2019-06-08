@@ -44,215 +44,660 @@ use Translation;
 use I18N qw(stringToBytes);
 use Network::PacketParser qw(STATUS_STR STATUS_AGI STATUS_VIT STATUS_INT STATUS_DEX STATUS_LUK);
 
-our %handlers;
-our %completions;
+our (%commands, %completions);
+my $needsInit = 1;
 
-undef %handlers;
+undef %commands;
 undef %completions;
 
-our %customCommands;
-
-
 sub initHandlers {
-	%handlers = (
-	a					=> \&cmdAttack,
-	achieve				=> \&cmdAchieve,
-	ai					=> \&cmdAI,
-	aiv					=> \&cmdAIv,
-	al					=> \&cmdShopInfoSelf,
-	arrowcraft			=> \&cmdArrowCraft,
-	as					=> \&cmdAttackStop,
-	autobuy				=> \&cmdAutoBuy,
-	autosell			=> \&cmdAutoSell,
-	autostorage			=> \&cmdAutoStorage,
-	auth				=> \&cmdAuthorize,
-	bangbang			=> \&cmdBangBang,
-	bingbing			=> \&cmdBingBing,
-	bg					=> \&cmdChat,
-	bl					=> \&cmdBuyerList,
-	booking				=> \&cmdBooking,
-	buy					=> \&cmdBuy,
-	buyer				=> \&cmdBuyer,
-	bs					=> \&cmdBuyShopInfoSelf,
-	c					=> \&cmdChat,
-	canceltransaction	=> \&cmdCancelTransaction,
-	card				=> \&cmdCard,
-	cart				=> \&cmdCart,
-	cash				=> \&cmdCash,
-	charselect			=> \&cmdCharSelect,
-	chat				=> \&cmdChatRoom,
-	chist				=> \&cmdChist,
-	cil					=> \&cmdItemLogClear,
-	cl					=> \&cmdChatRoom,
-	cln					=> \&cmdChat,
-	clearlog			=> \&cmdChatLogClear,
-	closeshop			=> \&cmdCloseShop,
-	closebuyshop		=> \&cmdCloseBuyShop,
-	closebuyershop		=> \&cmdCloseBuyerShop,
-	conf				=> \&cmdConf,
-	connect				=> \&cmdConnect,
-	create				=> \&cmdCreate,
-	damage				=> \&cmdDamage,
-	dead				=> \&cmdDeadTime,
-	deal				=> \&cmdDeal,
-	debug				=> \&cmdDebug,
-	dl					=> \&cmdDealList,
-	doridori			=> \&cmdDoriDori,
-	drop				=> \&cmdDrop,
-	dump				=> \&cmdDump,
-	dumpnow				=> \&cmdDumpNow,
-	e					=> \&cmdEmotion,
-	eq					=> \&cmdEquip,
-	elemental			=> \&cmdElemental,
-	eval				=> \&cmdEval,
-	exp					=> \&cmdExp,
-	falcon				=> \&cmdFalcon,
-	follow				=> \&cmdFollow,
-	friend				=> \&cmdFriend,
-	homun				=> \&cmdSlave,
-	merc				=> \&cmdSlave,
-	g					=> \&cmdChat,
-	getplayerinfo		=> \&cmdGetPlayerInfo,
-	getcharname			=> \&cmdGetCharacterName,
-	# GM Commands - Start
-	gmb					=> \&cmdGmb,
-	gmbb				=> \&cmdGmb,
-	gmnb				=> \&cmdGmb,
-	gmlb				=> \&cmdGmb,
-	gmlbb				=> \&cmdGmb,
-	gmlnb				=> \&cmdGmb,
-	gmmapmove			=> \&cmdGmmapmove,
-	gmcreate			=> \&cmdGmcreate,
-	gmhide				=> \&cmdGmhide,
-	gmwarpto			=> \&cmdGmwarpto,
-	gmsummon			=> \&cmdGmsummon,
-	gmrecall			=> \&cmdGmrecall,
-	gmremove			=> \&cmdGmremove,
-	gmdc				=> \&cmdGmdc,
-	gmresetskill		=> \&cmdGmresetskill,
-	gmresetstate		=> \&cmdGmresetstate,
-	gmmute				=> \&cmdGmmute,
-	gmunmute			=> \&cmdGmunmute,
-	gmkillall			=> \&cmdGmkillall,
-	# GM Commands - End
-	guild				=> \&cmdGuild,
-	help				=> \&cmdHelp,
-	i					=> \&cmdInventory,
-	identify			=> \&cmdIdentify,
-	ignore				=> \&cmdIgnore,
-	ihist				=> \&cmdIhist,
-	il					=> \&cmdItemList,
-	im					=> \&cmdUseItemOnMonster,
-	ip					=> \&cmdUseItemOnPlayer,
-	is					=> \&cmdUseItemOnSelf,
-	kill				=> \&cmdKill,
-	look				=> \&cmdLook,
-	lookp				=> \&cmdLookPlayer,
-	memo				=> \&cmdMemo,
-	ml					=> \&cmdMonsterList,
-	move				=> \&cmdMove,
-	nl					=> \&cmdNPCList,
-	openbuyershop		=> \&cmdOpenBuyerShop,
-	openshop			=> \&cmdOpenShop,
-	p					=> \&cmdChat,
-	party				=> \&cmdParty,
-	pecopeco			=> \&cmdPecopeco,
-	pet					=> \&cmdPet,
-	petl				=> \&cmdPetList,
-	pl					=> \&cmdPlayerList,
-	plugin				=> \&cmdPlugin,
-	pm					=> \&cmdPrivateMessage,
-	pml					=> \&cmdPMList,
-	portals				=> \&cmdPortalList,
-	quit				=> \&cmdQuit,
-	rc					=> \&cmdReloadCode,
-	rc2					=> \&cmdReloadCode2,
-	reload				=> \&cmdReload,
-	relog				=> \&cmdRelog,
-	repair				=> \&cmdRepair,
-	respawn				=> \&cmdRespawn,
-	rodex				=> \&cmdRodex,
-	s					=> \&cmdStatus,
-	sell				=> \&cmdSell,
-	send				=> \&cmdSendRaw,
-	sit					=> \&cmdSit,
-	skills				=> \&cmdSkills,
-	sll					=> \&cmdSlaveList,
-	spells				=> \&cmdSpells,
-	storage				=> \&cmdStorage,
-	store				=> \&cmdStore,
-	sl					=> \&cmdUseSkill,
-	sm					=> \&cmdUseSkill,
-	sp					=> \&cmdUseSkill,
-	ss					=> \&cmdUseSkill,
-	ssl					=> \&cmdUseSkill,
-	ssp					=> \&cmdUseSkill,
-	st					=> \&cmdStats,
-	stand				=> \&cmdStand,
-	stat_add			=> \&cmdStatAdd,
-	switchconf			=> \&cmdSwitchConf,
-	take				=> \&cmdTake,
-	talk				=> \&cmdTalk,
-	talknpc				=> \&cmdTalkNPC,
-	tank				=> \&cmdTank,
-	tele				=> \&cmdTeleport,
-	testshop			=> \&cmdTestShop,
-	timeout				=> \&cmdTimeout,
-	top10				=> \&cmdTop10,
-	uneq				=> \&cmdUnequip,
-	vender				=> \&cmdVender,
-	verbose				=> \&cmdVerbose,
-	version				=> \&cmdVersion,
-	vl					=> \&cmdVenderList,
-	vs					=> \&cmdShopInfoSelf,
-	warp				=> \&cmdWarp,
-	weight				=> \&cmdWeight,
-	where				=> \&cmdWhere,
-	who					=> \&cmdWho,
-	whoami				=> \&cmdWhoAmI,
+	register(
+		['a', [
+			T("Attack a monster."),
+			[ T("<monster #>"), T("attack the specified monster") ],
+			], \&cmdAttack],
+		['achieve', undef, \&cmdAchieve],
+		['ai', [
+			T("Enable/disable AI."),
+			["", T("toggles AI on/manual/off")],
+			["on", T("enables AI")],
+			["off", T("disables AI")],
+			["manual", T("makes AI manual")],
+			["ai_v", T("displays the contents of the %ai_v hash, for debugging purposes")],
+			["clear", T("clears AI sequences")],
+			["print", T("displays detailed info about current AI sequence")]
+			], \&cmdAI],
+		['aiv', T("Display current AI sequences."), \&cmdAIv],
+		['al', T("Display the status of your vending shop."), \&cmdShopInfoSelf],
+		['arrowcraft', [
+			T("Create Arrows."),
+			["", T("lists available arrow-crafting items")],
+			["use", T("use the Archer's Arrow Craft skill")],
+			[T("<arrowcraft #>"), T("create arrows using an item from the 'arrowcraft' list")],
+			[T("forceuse <inventory item #>"), T("craft arrows immediately from an item without using the skill")]
+			], \&cmdArrowCraft],
+		['as', T("Stop attacking a monster."), \&cmdAttackStop],
+		['autobuy', T("Initiate auto-buy AI sequence."), \&cmdAutoBuy],
+		['autosell', T("Initiate auto-sell AI sequence."), \&cmdAutoSell],
+		['autostorage', T("Initiate auto-storage AI sequence."), \&cmdAutoStorage],
+		['auth', [
+			T("(Un)authorize a user for using Kore chat commands."),
+			[T("<player name> 0"), T("unauthorize <player name>")],
+			[T("<player name> 1"), T("authorize <player name>")]
+			], \&cmdAuthorize],
+		['bangbang', T("Does a bangbang body turn."), \&cmdBangBang],
+		['bingbing', T("Does a bingbing body turn."), \&cmdBingBing],
+		['bg', [
+			T("Send a message in the battlegrounds chat."),
+			[T("<message>"), T("send <message> in the battlegrounds chat")]
+			], \&cmdChat],
+		['bl', undef, \&cmdBuyerList],
+		['booking', T("Interact with a group booking"), \&cmdBooking],
+		['buy', [
+			T("Buy an item from the current NPC shop"),
+			[T("<store item #> [<amount>]"), T("buy <amount> items from the 'store' list")]
+			], \&cmdBuy],
+		['buyer', undef, \&cmdBuyer],
+		['bs', undef, \&cmdBuyShopInfoSelf],
+		['c', [
+			T("Chat in the public chat."),
+			[T("<message>"), T("send <message> to public chat")]
+			], \&cmdChat],
+		['canceltransaction', undef, \&cmdCancelTransaction],
+		['card', [
+			T("Card compounding."),
+			["list", T("lists cards in the inventory")],
+			["use <card #>", T("initiate card compounding using the specified card")],
+			["mergelist", T("lists items to merge card with")],
+			["mergecancel", T("cancel a card merge request")],
+			["merge <card merge #>", T("merge card with item and finalize card compounding")],
+			["forceuse <card #> <inventory item #>", T("instantly merge the card with an item")]
+			], \&cmdCard],
+		['cart', [
+			T("Cart management"),
+			["", T("lists items in cart.")],
+			["add <inventory item #> [<amount>]", T("add <amount> items from inventory to cart")],
+			["get <cart item #> [<amount>]", T("get <amount> items from cart to inventory")],
+			["desc <cart item #> [<amount>]", T("displays cart item description")]
+			], \&cmdCart],
+		['cash', undef, \&cmdCash],
+		['cashbuy', undef, \&cmdCashShopBuy],
+		['charselect', T("Ask server to exit to the character selection screen."), \&cmdCharSelect],
+		['chat', [
+			T("Chat room management."),
+			["list", T("lists chat rooms on screen")],
+			[T("join <chat room #>"), T("join a chat room")],
+			["info", T("displays info about the current chat room")],
+			["leave", T("leave the current chat room")],
+			[T("create \"<title>\" [<limit #> <public flag> <password>]"), T("create a chat room")],
+			[T("modify \"<title>\" [<limit #> <public flag> <password>]"), T("modify the current chat room")],
+			[T("bestow <user #>"), T("bestow admin to chat room user")],
+			[T("kick <user #>"), T("kick a chat room user")]
+			], \&cmdChatRoom],
+		['chist', [
+			T("Display last few entries from the chat log."),
+			["", T("display last 5 entries")],
+			[T("<number>"), T("display last <number> entries")]
+			], \&cmdChist],
+		['cil', T("Clear the item log."), \&cmdItemLogClear],
+		['cln', undef, \&cmdChat],
+		['clearlog', T("Clear the chat log."), \&cmdChatLogClear],
+		['closeshop', T("Close your vending shop."), \&cmdCloseShop],
+		['closebuyshop', undef, \&cmdCloseBuyShop],
+		['closebuyershop', undef, \&cmdCloseBuyerShop],
+		['conf', [
+			T("Change a configuration key"),
+			[T("<key>"), T("displays value of <key>")],
+			[T("<key> <value>"), T("sets value of <key> to <value>")],
+			[T("<key> none"), T("unsets <key>")],
+			[T("<label.attribute> <value>"), T("set a new value for the specified configuration key through label")],
+			[T("<label.attribute> none"), T("unset the specified configuration key through label")]
+			], \&cmdConf],
+		['connect', undef, \&cmdConnect],
+		['create', undef, \&cmdCreate],
+		['damage', [
+			T("Damage taken report"),
+			["", T("displays the damage taken report")],
+			["reset", T("resets the damage taken report")]
+			], \&cmdDamage],
+		['dead', undef, \&cmdDeadTime],
+		['deal', [
+			T("Trade items with another player."),
+			["", T("accept an incoming deal/finalize the current deal/trade")],
+			[T("<player #>"), T("request a deal with player")],
+			[T("add <inventory item #> [<amount>]"), T("add items to current deal")],
+			[T("add z [<amount>]"), T("add zenny to current deal")],
+			["no", T("deny an incoming deal/cancel the current deal")]
+			], \&cmdDeal],
+		['debug', [
+			T("Toggle debug on/off."),
+			[T("<level>"), T("sets debug level to <level>")],
+			["info", T("displays debug information")]
+			], \&cmdDebug],
+		['dl', T("List items in the current deal."), \&cmdDealList],
+		['doridori', T("Does a doridori head turn."), \&cmdDoriDori],
+		['drop', [
+			T("Drop an item from the inventory."),
+			[T("<inventory item #> [<amount>]"), T("drop an item from inventory")]
+			], \&cmdDrop],
+		['dump', T("Dump the current packet receive buffer and quit."), \&cmdDump],
+		['dumpnow', T("Dump the current packet receive buffer without quitting."), \&cmdDumpNow],
+		['e', [
+			T("Show emotion."),
+			[T("<emotion>"), T("show specified emotion (see tables/emotions.txt)")]
+			], \&cmdEmotion],
+		['eq', [
+			T("Equip an item."),
+			[T("<inventory item #>"), T("equips the specified item")],
+			[T("<slotname> <inventory item #>"), T("equips the specified item on the specified slot")],
+			["slots", T("lists slot names")]
+			], \&cmdEquip],
+		['elemental', undef, \&cmdElemental],
+		['eval', [
+			T("Evaluate a Perl expression."),
+			[T("<expression>"), T("evaluate a Perl expression")]
+			], \&cmdEval],
+		['exp', [
+			T("Experience report."),
+			["", T("displays the experience report")],
+			["reset", T("resets the experience report")]
+			], \&cmdExp],
+		['falcon', [
+			T("Falcon status."),
+			["", T("displays falcon status")],
+			["release", T("releases your falcon")]
+			], \&cmdFalcon],
+		['follow', [
+			T("Follow another player."),
+			[T("<player name|player #>"), T("follow the specified player")],
+			["stop", T("stop following")]
+			], \&cmdFollow],
+		['friend', [
+			T("Friend management."),
+			["", T("lists friends")],
+			[T("request <player name|player #>"), T("requests player to be your friend")],
+			["accept", T("accepts a friend request")],
+			["reject", T("rejects a friend request")],
+			[T("pm <friend #>"), T("pm a friend")],
+			[T("remove <friend #>"), T("remove a friend from friends list")],
+			], \&cmdFriend],
+		['homun', [
+			T("Interact with homunculus."),
+			["s", T("display homunculus status")],
+			["status", T("display homunculus status")],
+			["feed", T("feed your homunculus. (Food needed)")],
+			["rename", T("rename your homunculus")],
+			["fire", T("delete your homunculus")],
+			["delete", T("delete your homunculus")],
+			["move <x> <y>", T("moves your homunculus")],
+			["standby ", T("makes your homunculus standby")],
+			["aiv ", T("display current homunculus AI ")],
+			["ai", T("toggles AI on, off or manual ")],
+			["on ", T("turns homunculus AI on")],
+			["auto", T("turns homunculus AI on")],
+			["manual", T("turns homunculus AI to manual")],
+			["off", T("turns homunculus AI off")],
+			["clear", T("clears homunculus AI")],
+			["print", T("prints homunculus AI")],
+			["skills", T("displays homunculus skills")],
+			[T("skills add <skill #>"), T("add a skill point to the current homunculus skill")],
+			[T("desc <skill #>"), T("display a description of the specified homunculus skill")]
+			], \&cmdSlave],
+		['merc', [
+			T("Interact with Mercenary."),
+			["s", T("display mercenary status")],
+			["status", T("display mercenary status")],
+			["fire", T("fires your mercenary")],
+			["move <x> <y>", T("moves your mercenary")],
+			["standby", T("makes your mercenary standby")],
+			["aiv", T("display current mercenary AI")],
+			["ai", T("toggles AI on, off or manual")],
+			["on", T("turns mercenary AI on")],
+			["auto", T("turns mercenary AI on")],
+			["manual", T("turns mercenary AI to manual")],
+			["off", T("turns mercenary AI off")],
+			["clear", T("clears mercenary AI")],
+			["print", T("prints mercenary AI")],
+			["skills", T("displays mercenary skills")],
+			[T("skills add <skill #>"), T("add a skill point to the current mercenary skill")],
+			[T("desc <skill #>"), T("display a description of the specified mercenary skill")]
+			], \&cmdSlave],
+		['g', [
+			T("Chat in the guild chat."),
+			["<message>", T("send <message> to guild chat")]
+			], \&cmdChat],
+		['getplayerinfo', [
+			T("Get the name of the player with specified ID"),
+			["<player ID>", T("show the name of the specified ID (needs debug 2)")]
+			], \&cmdGetPlayerInfo],
+		['getcharname', undef, \&cmdGetCharacterName],
+		# GM Commands - Start
+		['gmb', undef, \&cmdGmb],
+		['gmbb', undef, \&cmdGmb],
+		['gmnb', undef, \&cmdGmb],
+		['gmlb', undef, \&cmdGmb],
+		['gmlbb', undef, \&cmdGmb],
+		['gmlnb', undef, \&cmdGmb],
+		['gmmapmove', undef, \&cmdGmmapmove],
+		['gmcreate', undef, \&cmdGmcreate],
+		['gmhide', undef, \&cmdGmhide],
+		['gmwarpto', undef, \&cmdGmwarpto],
+		['gmsummon', undef, \&cmdGmsummon],
+		['gmrecall', undef, \&cmdGmrecall],
+		['gmremove', undef, \&cmdGmremove],
+		['gmdc', undef, \&cmdGmdc],
+		['gmresetskill', undef, \&cmdGmresetskill],
+		['gmresetstate', undef, \&cmdGmresetstate],
+		['gmmute', undef, \&cmdGmmute],
+		['gmunmute', undef, \&cmdGmunmute],
+		['gmkickall', undef, \&cmdGmkickall],
+		# GM Commands - End
+		['guild', [
+			T("Guild management."),
+			["", T("request guild info")],
+			["info", T("displays guild info")],
+			["members", T("displays guild member info")],
+			[T("request <player name|player #>"), T("request player to join your guild")],
+			[T("join <flag>"), T("accepts a guild join request if <flag> is 1, deny if 0")],
+			["leave", T("leave the guild")]
+			], \&cmdGuild],
+		['help', [
+			T("Help displays commands"),
+			["", T("lists available commands")],
+			[T("<command>"), T("displays detailed information about a command")]
+			], \&cmdHelp],
+		['i', [
+			T("Display inventory items."),
+			["", T("display all inventory items.")],
+			["eq", T("lists equipped items")],
+			["neq", T("lists unequipped items")],
+			["nu", T("lists non-usable items")],
+			["u", T("lists usable items")],
+			[T("desc <inventory item #>"), T("displays inventory item description")]
+			], \&cmdInventory],
+		['identify', [
+			T("Identify an unindentified item."),
+			["", T("lists items to be identified")],
+			[T("<identify #>"), T("identify an item")]
+			], \&cmdIdentify],
+		['ignore', [
+			T("Ignore a user (block their messages)."),
+			[T("<flag> <player name>"), T("ignores a player if <flag> is 1, unignore if 0")],
+			[T("<flag> all"), T("ignores all players if <flag> is 1, unignore if 0")]
+			], \&cmdIgnore],
+		['ihist', [
+			T("Displays last few entries of the item log."),
+			["", T("display last 5 entries")],
+			[T("<number>"), T("display last <number> entries")]
+			], \&cmdIhist],
+		['il', T("Display items on the ground."), \&cmdItemList],
+		['im', [
+			T("Use item on monster."),
+			[T("<inventory item #> <monster #>"), T("use item on monster")]
+			], \&cmdUseItemOnMonster],
+		['ip', [
+			T("Use item on player."),
+			[T("<inventory item #> <player #>"), T("use item on player")]
+			], \&cmdUseItemOnPlayer],
+		['is', [
+			T("Use item on yourself."),
+			[T("<inventory item #>"), T("use item on yourself")]
+			], \&cmdUseItemOnSelf],
+		['kill', [
+			T("Attack another player (PVP/GVG only)."),
+			[T("<player #>"), T("attack the specified player")]
+			], \&cmdKill],
+		['look', [
+			T("Look in a certain direction."),
+			[T("<body dir> [<head dir>]"), T("look at <body dir> (0-7) with head at <head dir> (0-2)")]
+			], \&cmdLook],
+		['lookp', [
+			T("Look at a certain player."),
+			[T("<player #>"), T("look at player")]
+			], \&cmdLookPlayer],
+		['memo', T("Save current position for warp portal."), \&cmdMemo],
+		['ml', T("List monsters that are on screen."), \&cmdMonsterList],
+		['move', [
+			T("Move your character."),
+			[T("<x> <y> [<map name>]"), T("move to the coordinates on a map")],
+			[T("<map name>"), T("move to map")],
+			[T("<portal #>"), T("move to nearby portal")],
+			["stop", T("stop all movement")]
+			], \&cmdMove],
+		['nl', T("List NPCs that are on screen."), \&cmdNPCList],
+		['openbuyershop', undef, \&cmdOpenBuyerShop],
+		['openshop', T("Open your vending shop."), \&cmdOpenShop],
+		['p', [
+			T("Chat in the party chat."),
+			[T("<message>"), T("send <message> to party chat")]
+			], \&cmdChat],
+		['party', [
+			T("Party management."),
+			["", T("displays party member info")],
+			[T("create \"<party name>\""), T("organize a party")],
+			[T("share <flag>"), T("sets party exp sharing to even if flag is 1, individual take if 0")],
+			[T("request <player #>"), T("request player to join your party")],
+			[T("join <flag>"), T("accept a party join request if <flag> is 1, deny if 0")],
+			[T("kick <party member #>"), T("kick party member from party")],
+			["leave", T("leave the party")]
+			], \&cmdParty],
+		['pecopeco', [
+			T("Pecopeco status."),
+			["", T("display pecopeco status")],
+			["release", T("release your pecopeco")]
+			], \&cmdPecopeco],
+		['pet', [
+			T("Pet management."),
+			["s", T("displays pet status")],
+			["status", T("displays pet status")],
+			[T("c <monster #>"), T("captures a monster")],
+			[T("capture <monster #>"), T("captures a monster")],
+			[T("hatch <egg #>"), T("hatches a pet egg, but first you should use the item Pet Incubator")],
+			["info", T("sends pet menu")],
+			["feed", T("feeds your pet")],
+			["performance", T("plays with your pet")],
+			["return", T("sends your pet back to the egg")],
+			["unequip", T("unequips your pet")],
+			[T("name <name>"), T("changes the name of the pet")]
+			], \&cmdPet],
+		['petl', T("List pets that are on screen."), \&cmdPetList],
+		['pl', [
+			T("List players that are on screen."),
+			["", T("lists players on screen")],
+			[T("<player #>"), T("displays detailed info about a player")],
+			["p", T("lists party players on screen")],
+			["g", T("lists guild players on screen")]
+			], \&cmdPlayerList],
+		['plugin', [
+			T("Control plugins."),
+			["", T("lists loaded plugins")],
+			[T("load <filename>"), T("loads a plugin file")],
+			[T("reload <plugin name|plugin #>"), T("reloads a loaded plugin")],
+			[T("unload <plugin name|plugin #>"), T("unloads a loaded plugin")],
+			["help", T("displays plugin help")]
+			], \&cmdPlugin],
+		['pm', [
+			T("Send a private message."),
+			[T("<player name|PM list #> <message>"), T("send <message> to player through PM")]
+			], \&cmdPrivateMessage],
+		['pml', T("Quick PM list."), \&cmdPMList],
+		['portals', T("List portals that are on screen."), \&cmdPortalList],
+		['quit', T("Exit this program."), \&cmdQuit],
+		['rc', [
+			T("Reload source code files."),
+			["", T("reload functions.pl")],
+			[T("<module names>"), T("reload module files in the space-separated <module names>")]
+			], \&cmdReloadCode],
+		['rc2', undef, \&cmdReloadCode2],
+		['reload', [
+			T("Reload configuration files."),
+			["all", T("reload all control and table files")],
+			[T("<names>"), T("reload control files in the list of <names>")],
+			[T("all except <names>"), T("reload all files except those in the list of <names>")]
+			], \&cmdReload],
+		['relog', [
+			T("Log out then log in again."),
+			["", T("logout and login after 5 seconds")],
+			[T("<seconds>"), T("logout and login after <seconds>")]
+			], \&cmdRelog],
+		['repair', undef, \&cmdRepair],
+		['respawn', T("Respawn back to the save point."), \&cmdRespawn],
+		['revive', undef, \&cmdRevive],
+		['rodex', undef, \&cmdRodex],
+		['s', T("Display character status."), \&cmdStatus],
+		['sell', [
+			T("Sell items to an NPC."),
+			[T("<inventory item #> [<amount>]"), T("put inventory items in sell list")],
+			["list", T("show items in the sell list")],
+			["done", T("sell everything in the sell list")],
+			["cancel", T("clear the sell list")]
+			], \&cmdSell],
+		['send', [
+			T("Send a raw packet to the server."),
+			[T("<hex string>"), T("sends a raw packet to connected server")]
+			], \&cmdSendRaw],
+		['sit', T("Sit down."), \&cmdSit],
+		['skills', [
+			T("Skills management."),
+			["", T("Lists available skills.")],
+			[T("add <skill #>"), T("add a skill point")],
+			[T("desc <skill #>"), T("displays skill description")]
+			], \&cmdSkills],
+		['sll', T("Display a list of slaves in your immediate area."), \&cmdSlaveList],
+		['spells', T("List area effect spells on screen."), \&cmdSpells],
+		['storage', [
+			T("Handle items in Kafra storage."),
+			["", T("lists items in storage")],
+			["eq", T("lists equipments in storage")],
+			["nu", T("lists non-usable items in storage")],
+			["u", T("lists usable items in storage")],
+			[T("add <inventory item #> [<amount>]"), T("adds inventory item to storage")],
+			[T("addfromcart <cart item #> [<amount>]"), T("adds cart item to storage")],
+			[T("get <storage item #> [<amount>]"), T("gets item from storage to inventory")],
+			[T("gettocart <storage item #> [<amount>]"), T("gets item from storage to cart")],
+			["close", T("close storage")],
+			["log", T("logs storage items to logs/storage.txt")]
+			], \&cmdStorage],
+		['store', [
+			T("Display shop items from NPC."),
+			["", T("lists available shop items from NPC")],
+			[T("desc <store item #>"), T("displays store item description")]
+			], \&cmdStore],
+		['sl', [
+			T("Use skill on location."),
+			[T("<skill #> <x> <y> [<level>]"), T("use skill on location")]
+			], \&cmdUseSkill],
+		['sm', [
+			T("Use skill on monster."),
+			[T("<skill #> <monster #> [<level>]"), T("use skill on monster")]
+			], \&cmdUseSkill],
+		['sp', [
+			T("Use skill on player."),
+			[T("<skill #> <player #> [<level>]"), T("use skill on player")]
+			], \&cmdUseSkill],
+		['ss', [
+			T("Use skill on self."),
+			[T("<skill #> [<level>]"), T("use skill on self")]
+			], \&cmdUseSkill],
+		['ssl', [
+			T("Use skill on slave."),
+			[T("<skill #> <target #> <skill level>"), T("use skill on slave")]
+			], \&cmdUseSkill],
+		['ssp', [
+			T("Use skill on ground spell."),
+			[T("<skill #> <target #> [<skill level>]"), T("use skill on ground spell")]
+			], \&cmdUseSkill],
+		['st', T("Display stats."), \&cmdStats],
+		['stand', T("Stand up."), \&cmdStand],
+		['stat_add', [
+			T("Add status point."),
+			["str|agi|int|vit|dex|luk", T("add status points to a stat")]
+			], \&cmdStatAdd],
+		['switchconf', [
+			T("Switch configuration file."),
+			[T("<filename>"), T("switches configuration file to <filename>")]
+			], \&cmdSwitchConf],
+		['take', [
+			T("Take an item from the ground."),
+			[T("<item #>"), T("take an item from the ground")],
+			["first", T("take the first item on the ground")]
+			], \&cmdTake],
+		['talk', [
+			T("Manually talk to an NPC."),
+			[T("<NPC #>"), T("talk to an NPC")],
+			["cont", T("continue talking to NPC")],
+			["resp", T("lists response options to NPC")],
+			[T("resp <response #>"), T("select a response to NPC")],
+			[T("num <number>"), T("send a number to NPC")],
+			[T("text <string>"), T("send text to NPC")],
+			["no", T("ends/cancels conversation with NPC")]
+			], \&cmdTalk],
+		['talknpc', [
+			T("Send a sequence of responses to an NPC."),
+			[T("<x> <y> <NPC talk codes>"), T("talk to the NPC standing at <x> <y> and use <NPC talk codes>")]
+			], \&cmdTalkNPC],
+		['tank', [
+			T("Tank for a player."),
+			[T("<player name|player #>"), T("starts tank mode with player as tankModeTarget")],
+			["stop", T("stops tank mode")]
+			], \&cmdTank],
+		['tele', T("Teleport to a random location."), \&cmdTeleport],
+		['testshop', T("Show what your vending shop would sell."), \&cmdTestShop],
+		['timeout', [
+			T("Set a timeout."),
+			[T("<type>"), T("displays value of <type>")],
+			[T("<type> <second>"), T("sets value of <type> to <seconds>")]
+			], \&cmdTimeout],
+		['top10', [
+			T("Displays top10 ranking."),
+			["top10 (a | alche | alchemist)", T("displays Alchemist's top10 ranking")],
+			["top10 (b | black | blacksmith)", T("displays Blackmith's top10 ranking")],
+			["top10 (p | pk | pvp)", T("displays PVP top10 ranking")],
+			["top10 (t | tk | taekwon)", T("displays Taekwon's top10 ranking")]
+			], \&cmdTop10],
+		['uneq', [
+			T("Unequp an item."),
+			[T("<inventory item #>"), T("unequips the specified item")]
+			], \&cmdUnequip],
+		['vender', [
+			T("Buy items from vending shops."),
+			[T("<vender #>"), T("enter vender shop")],
+			[T("<vender #> <vender item #> [<amount>]"), T("buy items from vender shop")],
+			["end", T("leave current vender shop")]
+			], \&cmdVender],
+		['verbose', T("Toggle verbose on/off."), \&cmdVerbose],
+		['version', T("Display the version of openkore."), \&cmdVersion],
+		['vl', T("List nearby vending shops."), \&cmdVenderList],
+		['vs', undef, \&cmdShopInfoSelf],
+		['warp', [
+			T("Open warp portal."),
+			["list", T("lists available warp portals to open")],
+			[T("<warp portal #|map name>"), T("opens a warp portal to a map")]
+			], \&cmdWarp],
+		['weight', [
+			T("Gives a report about your inventory weight."),
+			["", T("displays info about current weight")],
+			[T("<item weight>"), T("calculates how much more items of specified weight can be carried")]
+			], \&cmdWeight],
+		['where', T("Shows your current location."), \&cmdWhere],
+		['who', T("Display the number of people on the current server."), \&cmdWho],
+		['whoami', T("Display your character and account ID."), \&cmdWhoAmI],
 
-	m					=> \&cmdMail,	# see commands
-	ms					=> \&cmdMail,	# send
-	mi					=> \&cmdMail,	# inbox
-	mo					=> \&cmdMail,	# open
-	md					=> \&cmdMail,	# delete
-	mw					=> \&cmdMail,	# window
-	mr					=> \&cmdMail,	# return
-	ma					=> \&cmdMail,	# attachement
+		['m', T("Displays Mail commands."), \&cmdMail],	# see commands
+		['ms', [
+			T("Sends Mail."),
+			[T("<receiver> <title> <message>"), T("sends mail to <receiver>")]
+			], \&cmdMail],	# send
+		['mi', T("Opens Mailbox."), \&cmdMail],	# inbox
+		['mo', [
+			T("Open a mail."),
+			[T("<mail #>"), T("open the mail with a corresponding number from the mail list when you open your mailbox")]
+			], \&cmdMail],
+		['md', [
+			T("Deletes a Mail."),
+			[T("<mail #>"), T("delete a mail with a corresponding number from the mail list when you open your mailbox")]
+			], \&cmdMail],	# delete
+		['mw', [
+			T("Interacts with mail box window."),
+			["0", T("write mail")],
+			["1", T("take attached items back")],
+			["2", T("inputs zenys")]
+			], \&cmdMail],	# window
+		['mr', [
+			T("Returns the mail to the sender."),
+			[T("<mail #>"), T("a corresponding number from the mail list when you open your mailbox")]
+			], \&cmdMail],	# return
+		['ma', [
+			T("Mail & Attachment."),
+			[T("get <mail #>"), T("takes items attached from mail")],
+			[T("add zeny <amount>"), T("attaches zenys in the mail")],
+			[T("add item <amount> <inventory item>"), T("attaches items in the mail")]
+			], \&cmdMail],	# attachement
 
-	au					=> \&cmdAuction,	# see commands
-	aua					=> \&cmdAuction,	# add item
-	aur					=> \&cmdAuction,	# remove item
-	auc					=> \&cmdAuction,	# create auction
-	aue					=> \&cmdAuction,	# auction end
-	aus					=> \&cmdAuction,	# search auction
-	aub					=> \&cmdAuction,	# make bid
-	aui					=> \&cmdAuction,	# info on buy/sell
-	aud					=> \&cmdAuction,	# delete auction
+		['au', T("Display possible commands for auction."), \&cmdAuction],	# see commands
+		['aua', [
+			T("Adds an item to the auction."),
+			[T("<inventory item> <amount>"), T("adds an item to the auction")]
+			], \&cmdAuction],	# add item
+		['aur', T("Removes item from auction."), \&cmdAuction],	# remove item
+		['auc', [
+			T("Creates an auction."),
+			[T("<current price> <instant buy price> <hours>"), T("creates an auction")]
+			], \&cmdAuction],	# create auction
+		['aue', [
+			T("Ends an auction."),
+			[T("<index>"), T("ends an auction")]
+			], \&cmdAuction],	# auction end
+		['aus', [
+			T("Search for an auction according to the criteria."),
+			[T("<type> <price> <text>"), T("Item's search criteria. Type: 1 Armor, 2 Weapon, 3 Card, 4 Misc, 5 By Text, 6 By Price, 7 Sell, 8 Buy")]
+			], \&cmdAuction],	# search auction
+		['aub', [
+			T("Bids an auction."),
+			[T("<id> <price>"), T("bids an auction")]
+			], \&cmdAuction],	# make bid
+		['aui', [
+			T("Displays your auction info."),
+			["selling", T("display selling info")],
+			["buying", T("display buying info")]
+			], \&cmdAuction],	# info on buy/sell
+		['aud', [
+			T("Deletes an auction."),
+			[T("<index>"), T("deletes an auction")]
+			], \&cmdAuction],	# delete auction
 
-	quest				=> \&cmdQuest,
-	showeq				=> \&cmdShowEquip,
-	cook				=> \&cmdCooking,
-	refine				=> \&cmdWeaponRefine,
+		['quest', [
+			T("Quest management."),
+			["", T("displays possible commands for quest")],
+			[T("set <questID> on"), T("enable quest")],
+			[T("set <questID> off"), T("disable quest")],
+			["list", T("displays a list of your quests")]
+			], \&cmdQuest],
+		['showeq', [
+			T("Equipment showing."),
+			[T("<player>"), T("request equipment information for player")],
+			["me on", T("enables equipment showing")],
+			["me off", T("disables equipment showing")]
+			], \&cmdShowEquip],
+		['cook', [
+			T("Attempt to create a food item."),
+			[T("<cook list #>"), T("attempt to create a food item")]
+			], \&cmdCooking],
+		['refine', [
+			T("Refine an item (using the whitesmith skill)"),
+			[T("(<item name>|<item index>)"), T("Refine an item (using the whitesmith skill)")]
+			], \&cmdWeaponRefine],
 
-	north				=> \&cmdManualMove,
-	south				=> \&cmdManualMove,
-	east				=> \&cmdManualMove,
-	west				=> \&cmdManualMove,
-	northeast			=> \&cmdManualMove,
-	northwest			=> \&cmdManualMove,
-	southeast			=> \&cmdManualMove,
-	southwest			=> \&cmdManualMove,
-	captcha			   => \&cmdAnswerCaptcha,
-	refineui			=> \&cmdRefineUI,
-	clan				=> \&cmdClan,
+		['north', T("Move 5 steps north."), \&cmdManualMove],
+		['south', T("Move 5 steps south."), \&cmdManualMove],
+		['east', T("Move 5 steps east."), \&cmdManualMove],
+		['west', T("Move 5 steps west."), \&cmdManualMove],
+		['northeast', T("Move 5 steps northeast."), \&cmdManualMove],
+		['northwest', T("Move 5 steps northwest."), \&cmdManualMove],
+		['southeast', T("Move 5 steps southeast."), \&cmdManualMove],
+		['southwest', T("Move 5 steps southwest."), \&cmdManualMove],
+		['captcha', T("Answer captcha"), \&cmdAnswerCaptcha],
+		['refineui', undef, \&cmdRefineUI],
+		['clan', undef, \&cmdClan],
+		['merge', undef, \&cmdMergeItem],
 
-	# Skill Exchange Item
-	cm					=> \&cmdExchangeItem,
-	analysis			=> \&cmdExchangeItem,
-	
-	searchstore				=> \&cmdSearchStore,
+		# Skill Exchange Item
+		['cm', undef, \&cmdExchangeItem],
+		['analysis', undef, \&cmdExchangeItem],
+		
+		['searchstore', undef, \&cmdSearchStore],
+		['pause', [
+			T("Delay the next console commands."),
+			[T("<seconds>"), T("delay the next console commands by a specified number of seconds (default: 1 sec.)")]
+			], undef],
 	);
+	
+	# Built-in aliases
+	register(
+		['cl', $commands{'chat'}{desc}, $commands{'chat'}{callback}],
+	);
+	
+	$needsInit = 0;
 }
 
 sub initCompletions {
@@ -273,7 +718,7 @@ sub initCompletions {
 # Commands::run("s");
 sub run {
 	my $input = shift;
-	initHandlers() if (!%handlers);
+	initHandlers() if $needsInit;
 
 	# Resolve command aliases
 	my ($switch, $args) = split(/ +/, $input, 2);
@@ -283,15 +728,14 @@ sub run {
 	}
 
 	# Remove trailing spaces from input
-	$input =~ s/^\s+//;
+	$input =~ s/^\s+|\s+$//g;
 
 	my @commands = split(';;', $input);
 	# Loop through all of the commands...
 	foreach my $command (@commands) {
 		my ($switch, $args) = split(/ +/, $command, 2);
 		my $handler;
-		$handler = $customCommands{$switch}{callback} if ($customCommands{$switch});
-		$handler = $handlers{$switch} if (!$handler && $handlers{$switch});
+		$handler = $commands{$switch}{callback} if (exists $commands{$switch} && $commands{$switch});
 
 		if (($switch eq 'pause') && (!$cmdQueue) && AI::state != AI::AUTO && ($net->getState() == Network::IN_GAME)) {
 			$cmdQueue = 1;
@@ -348,11 +792,16 @@ sub register {
 
 	foreach my $cmd (@_) {
 		my $name = $cmd->[0];
+		my $desc = (ref($cmd->[1]) eq 'ARRAY') ? $cmd->[1] : [$cmd->[1]];
+		
 		my %item = (
-			desc => $cmd->[1],
+			desc => $desc,
 			callback => $cmd->[2]
 		);
-		$customCommands{$name} = \%item;
+		
+		warning TF("Command '%s' will be overriden\n", $name) if exists $commands{$name} && $commands{$name};
+		
+		$commands{$name} = \%item;
 		push @result, $name;
 	}
 	return \@result;
@@ -368,7 +817,7 @@ sub unregister {
 	my $ID = shift;
 
 	foreach my $name (@{$ID}) {
-		delete $customCommands{$name};
+		delete $commands{$name};
 	}
 }
 
@@ -695,7 +1144,12 @@ sub cmdAutoSell {
 
 sub cmdAutoStorage {
 	message T("Initiating auto-storage.\n");
-	AI::queue("storageAuto");
+	if (ai_canOpenStorage()) {
+		AI::queue("storageAuto");
+	} else {
+		error T("Error in function 'autostorage' (Automatic storage of items)\n" .
+		"You cannot use the Storage Service. Very low level of basic skills or not enough zeny.\n");
+	}
 }
 
 sub cmdBangBang {
@@ -919,7 +1373,7 @@ sub cmdCart_desc {
 			error TF("Error in function 'cart desc' (Show Cart Item Description)\n" .
 				"Cart Item %s does not exist.\n", $arg);
 		} else {
-			printItemDesc($item->{nameID});
+			printItemDesc($item);
 		}
 	}
 }
@@ -1036,76 +1490,99 @@ sub cmdCart_get {
 
 sub cmdCash {
 	my (undef, $args) = @_;
-	my ($sub_cmd, $arg) = split(/\s+/,$args, 2);
-	if ($sub_cmd eq 'buy') {
-		if ($arg =~ /^\s+$/) {
-			error T("Syntax Error in function 'cash' (Cash shop)\n" .
-				"Usage: cash <buy|points>\n");
+	my (@args) = parseArgs($args);
+	
+	if ($args[0] eq 'open') {
+		if (defined $cashShop{points}) {
+			error T("Cash shop already opened this session\n");
 			return;
 		}
-		my $int_arg;
-		#my $r_arg;
-		if ($arg =~ s/(\d+)$//) { # ending with number
-			$int_arg = $1;
-		}
-		$arg =~ s/^[\t\s]*//;	# Remove leading tabs and whitespace
-		$arg =~ s/\s+$//g;	# Remove trailing whitespace
-
-		my $amount;
-		my $item;
-
-		if ($arg && $int_arg) { # recebi item (nao sei se é ID ou nome) e quantidade
-			$amount = $int_arg;
-			$item = $arg;
-		} elsif (!$arg && $int_arg) { # recebi itemID, sem quantidade
-			$amount = 1;
-			$item = $int_arg;
-		} elsif ($arg && !$int_arg) { # recebi nome do item, sem quantidade
-			$amount = 1;
-			$item = $arg;
-		} else {
-			error TF("Error in function 'cash buy': item %s not found or shop list is not ready yet.", itemNameSimple($item));
+		
+		$messageSender->sendCashShopOpen();
+		return;
+	}
+	
+	if ($args[0] eq 'close') {
+		if (not defined $cashShop{points}) {
+			error T("Cash shop is not open\n");
 			return;
 		}
-
-		if ($item !~ /^\d+$/) {
-			# transform itemName into itemID
+		
+		$messageSender->sendCashShopClose();
+		return;
+	}
+	
+	if (not defined $cashShop{points}) {
+		error T("Cash shop is not open\n");
+		error T("Please use 'cash open' first\n");
+		return;
+	}
+	
+	if ($args[0] eq 'buy') {
+		if (scalar @args < 2 || !$args[1]) {
+			error T("Syntax Error in function 'cash buy' (Cash shop)\n" .
+				"Usage: cash buy <item> [<amount>] [<kafra shop points>]\n");
+			return;
+		}
+		
+		my ($amount, $item, $kafra_points);
+		
+		if ($args[1] !~ /^\d+$/) {
 			$item = itemNameToID($item);
 			if (!$item) {
 				error TF("Error in function 'cash buy': invalid item name or tables needs to be updated \n");
 				return;
 			}
+		} else {
+			$item = $args[1];
+		}
+		
+		if (scalar @args < 3 || $args[2] !~ /^\d+$/) {
+			$amount = 1;
+		} else {
+			$amount = $args[2];
+		}
+		
+		if (scalar @args >= 4) {
+			$kafra_points = $args[3];
+		} else {
+			$kafra_points = 0;
 		}
 
-		$messageSender->sendCashShopOpen() unless (defined $cashShop{points});
-
-		for (my $tab = 0; $tab < @{$cashShop{list}}; $tab++) {
-			foreach my $itemloop (@{$cashShop{list}[$tab]}) {
-				if ($itemloop->{item_id} == $item) {
-					# found item! ... but do we have the money?
-					unless ((defined $cashShop{points}) && ($itemloop->{price} > $cashShop{points}->{cash})) {
-						# buy item
-						message TF("Buying %s from cash shop \n", itemNameSimple($itemloop->{item_id}));
-						$messageSender->sendCashBuy($itemloop->{item_id}, $amount, $tab);
-						return;
-					} else {
-						error TF("Not enough cash to buy item %s (%sC), we have %sC\n", itemNameSimple($itemloop->{item_id}), formatNumber($itemloop->{price}), formatNumber($cashShop{points}->{cash}));
+		if ($kafra_points > $cashShop{points}->{kafra}) {
+			error TF("You don't have that many kafra shop points (Requested: %d, Available: %d)", $kafra_points, $cashShop{points}->{kafra});
+			return;
+		}
+		
+		for (my $i = 0; $i < scalar @{$cashShop{list}}; ++$i) {
+			foreach my $item_in_tab (@{$cashShop{list}[$i]}) {
+				if ($item_in_tab->{item_id} == $item) {
+					if ($item_in_tab->{price} * $amount > $cashShop{points}->{cash} + $kafra_points) {
+						error TF("Not enough cash to buy item %s x %d (%sC), we have %sC\n",
+							itemNameSimple($item_in_tab->{item_id}), $amount, formatNumber($item_in_tab->{price} * $amount),
+							formatNumber($cashShop{points}->{cash} + $kafra_points)
+						);
 						return;
 					}
+					
+					message TF("Buying %s from cash shop \n", itemNameSimple($item_in_tab->{item_id}));
+					$messageSender->sendCashBuy($kafra_points, [{nameID => $item_in_tab->{item_id}, amount => $amount, tab => $i}]);
+					return;
 				}
-			} 
+			}
 		}
 
 		error TF("Error in function 'cash buy': item %s not found or shop list is not ready yet.", itemNameSimple($item));
 		return;
 
-	} elsif ($sub_cmd eq 'points') {
-		if (defined $cashShop{points}) {
-			message TF("Cash Points: %sC - Kafra Points: %sC\n", formatNumber($cashShop{points}->{cash}), formatNumber($cashShop{points}->{kafra}));
-		} else {
-			$messageSender->sendCashShopOpen();
-		}
-	} elsif ($sub_cmd eq 'list') {
+	} 
+	
+	if ($args[0] eq 'points') {
+		message TF("Cash Points: %sC - Kafra Points: %sC\n", formatNumber($cashShop{points}->{cash}), formatNumber($cashShop{points}->{kafra}));
+		return;
+	}
+	
+	if ($args[0] eq 'list') {
 		my %cashitem_tab = (
 			0 => T('New'),
 			1 => T('Popular'),
@@ -1129,11 +1606,12 @@ sub cmdCash {
 		}
 		$msg .= ('-'x50) . "\n";
 		message $msg, "list";
-
-	} else {
-		error T("Syntax Error in function 'cash' (Cash shop)\n" .
-			"Usage: cash <buy|points|list>\n");
+		
+		return;
 	}
+	
+	error T("Syntax Error in function 'cash' (Cash shop)\n" .
+			"Usage: cash <open|close|buy|points|list>\n");
 }
 
 sub cmdCharSelect {
@@ -2131,11 +2609,11 @@ sub cmdSlave {
 	if (!$slave || !$slave->{appear_time}) {
 		error T("Error: No slave detected.\n");
 
-	} elsif ($slave->{actorType} eq 'Homunculus' && $slave->{state} & 2) {
+	} elsif ($slave->{state} & 2 && $slave->isa("Actor::Slave::Homunculus")) {
 			my $skill = new Skill(handle => 'AM_CALLHOMUN');
 			error TF("Homunculus is in rest, use skills '%s' (ss %d).\n", $skill->getName, $skill->getIDN);
 
-	} elsif ($slave->{actorType} eq 'Homunculus' && $slave->{state} & 4) {
+	} elsif ($slave->{state} & 4 && $slave->isa("Actor::Slave::Homunculus")) {
 			my $skill = new Skill(handle => 'AM_RESURRECTHOMUN');
 			error TF("Homunculus is dead, use skills '%s' (ss %d).\n", $skill->getName, $skill->getIDN);
 		
@@ -2217,9 +2695,9 @@ sub cmdSlave {
 			error TF("You must be logged in the game to use this command '%s'\n", $cmd .' ' .$subcmd);
 			return;
 		}
-		if ($slave->{actorType} eq 'Mercenary') {
+		if ($slave->isa("Actor::Slave::Mercenary")) {
 			$messageSender->sendMercenaryCommand (2);
-		} elsif ($slave->{actorType} eq 'Homunculus') {
+		} elsif ($slave->isa("Actor::Slave::Homunculus")) {
 			$messageSender->sendHomunculusCommand (2);
 		}
 	} elsif ($args[0] eq "move") {
@@ -2415,26 +2893,21 @@ sub cmdGmb {
 
 	return unless ($char);
 	my ($cmd, $message) = @_;
-	my ($msg, $switch);
-
-	if ($message eq '') {
-		error TF("Usage: %s <MESSAGE>\n", $cmd);
-		return;
-	} elsif ($cmd =~ /^gml/) {
-		$switch = hex('019C');
-	} else {
-		$switch = hex('0099');
-	}
 
 	if ($cmd eq 'gmb' || $cmd eq 'gmlb') {
-		$message = stringToBytes("$char->{name}: $message");
+		$message = "$char->{name}: $message";
 	} elsif ($cmd eq 'gmbb' || $cmd eq 'gmlbb') {
-		$message = stringToBytes("blue$message");
-	} elsif ($cmd eq 'gmnb' || $cmd eq 'gmlnb') {
-		$message = stringToBytes($message);
+		$message = "blue$message";
+	} elsif ($cmd ne 'gmnb' && $cmd ne 'gmlnb') {
+		error TF("Usage: %s <MESSAGE>\n", $cmd);
+		return;
 	}
-	$msg = pack('v2 Z*', $switch, length($message) + 5, $message);
-	$messageSender->sendToServer($msg);
+	
+	if ($cmd =~ /^gml/) {
+		$messageSender->sendGMBroadcastLocal($message);
+	} else {
+		$messageSender->sendGMBroadcast($message);
+	}
 }
 
 sub cmdGmmapmove {
@@ -2455,8 +2928,7 @@ sub cmdGmmapmove {
 		return;
 	}
 
-	my $packet = pack("C*", 0x40, 0x01) . pack("a16", $map_name) . pack("v1 v1", $x, $y);
-	$messageSender->sendToServer($packet);
+	$messageSender->sendGMMapMove($map_name, $x, $y);
 }
 
 sub cmdGmsummon {
@@ -2488,17 +2960,16 @@ sub cmdGmdc {
 		return;
 	}
 
-	my $packet = pack("C*", 0xCC, 0x00).pack("V1", $args);
-	$messageSender->sendToServer($packet);
+	$messageSender->sendGMKick($args);
 }
 
-sub cmdGmkillall {
+sub cmdGmkickall {
 	if (!$net || $net->getState() != Network::IN_GAME) {
 		error TF("You must be logged in the game to use this command '%s'\n", shift);
 		return;
 	}
-	my $packet = pack("C*", 0xCE, 0x00);
-	$messageSender->sendToServer($packet);
+	
+	$messageSender->sendGMKickAll();
 }
 
 sub cmdGmcreate {
@@ -2513,8 +2984,7 @@ sub cmdGmcreate {
 		return;
 	}
 
-	my $packet = pack("C*", 0x3F, 0x01).pack("a24", $args);
-	$messageSender->sendToServer($packet);
+	$messageSender->sendGMMonsterItem($args);
 }
 
 sub cmdGmhide {
@@ -2522,8 +2992,8 @@ sub cmdGmhide {
 		error TF("You must be logged in the game to use this command '%s'\n", shift);
 		return;
 	}
-	my $packet = pack("C*", 0x9D, 0x01, 0x40, 0x00, 0x00, 0x00);
-	$messageSender->sendToServer($packet);
+	
+	$messageSender->sendGMChangeEffectState(0);
 }
 
 sub cmdGmresetstate {
@@ -2531,8 +3001,8 @@ sub cmdGmresetstate {
 		error TF("You must be logged in the game to use this command '%s'\n", shift);
 		return;
 	}
-	my $packet = pack("C1 C1 v1", 0x97, 0x01, 0);
-	$messageSender->sendToServer($packet);
+	
+	$messageSender->sendGMResetStateSkill(0);
 }
 
 sub cmdGmresetskill {
@@ -2540,8 +3010,8 @@ sub cmdGmresetskill {
 		error TF("You must be logged in the game to use this command '%s'\n", shift);
 		return;
 	}
-	my $packet = pack("C1 C1 v1", 0x97, 0x01, 1);
-	$messageSender->sendToServer($packet);
+	
+	$messageSender->sendGMResetStateSkill(1);
 }
 
 sub cmdGmmute {
@@ -2555,8 +3025,8 @@ sub cmdGmmute {
 		error T("Usage: gmmute <ID> <minutes>\n");
 		return;
 	}
-	my $packet = pack("C1 C1 V1 C1 v1", 0x49, 0x01, $ID, 1, $time);
-	$messageSender->sendToServer($packet);
+	
+	$messageSender->sendAlignment($ID, 1, $time);
 }
 
 sub cmdGmunmute {
@@ -2570,8 +3040,8 @@ sub cmdGmunmute {
 		error T("Usage: gmunmute <ID> <minutes>\n");
 		return;
 	}
-	my $packet = pack("C1 C1 V1 C1 v1", 0x49, 0x01, $ID, 0, $time);
-	$messageSender->sendToServer($packet);
+	
+	$messageSender->sendAlignment($ID, 0, $time);
 }
 
 sub cmdGmwarpto {
@@ -2586,8 +3056,7 @@ sub cmdGmwarpto {
 		return;
 	}
 
-	my $packet = pack("C*", 0xBB, 0x01).pack("a24", $args);
-	$messageSender->sendToServer($packet);
+	$messageSender->sendGMShift($args);
 }
 
 sub cmdGmrecall {
@@ -2602,8 +3071,7 @@ sub cmdGmrecall {
 		return;
 	}
 
-	my $packet = pack("C*", 0xBC, 0x01).pack("a24", $args);
-	$messageSender->sendToServer($packet);
+	$messageSender->sendGMRecall($args);
 }
 
 sub cmdGmremove {
@@ -2618,8 +3086,7 @@ sub cmdGmremove {
 		return;
 	}
 
-	my $packet = pack("C*", 0xBA, 0x01).pack("a24", $args);
-	$messageSender->sendToServer($packet);
+	$messageSender->sendGMRemove($args);
 }
 
 sub cmdGuild {
@@ -2736,7 +3203,7 @@ sub cmdGuild {
 			error T("Syntax Error in function 'guild create' (Create Guild)\n" .
 				"Usage: guild create <name>\n");
 		} else {
-			$messageSender->sendGuildCreate($arg2);
+			$messageSender->sendGuildCreate($arg2, $charID);
 		}
 
 	} elsif (!defined $char->{guild}) {
@@ -2747,7 +3214,7 @@ sub cmdGuild {
 		if (!$player) {
 			error TF("Player %s does not exist.\n", $arg2);
 		} else {
-			$messageSender->sendGuildJoinRequest($player->{ID});
+			$messageSender->sendGuildJoinRequest($player->{ID}, $charID);
 			message TF("Sent guild join request to %s\n", $player->{name});
 		}
 
@@ -2763,12 +3230,12 @@ sub cmdGuild {
 			error T("You must be guildmaster to set an alliance\n");
 			return;
 		} else {
-			$messageSender->sendGuildSetAlly($net,$player->{ID},$accountID,$charID);
+			$messageSender->sendGuildSetAlly($player->{ID}, $accountID, $charID);
 			message TF("Sent guild alliance request to %s\n", $player->{name});
 		}
 
 	} elsif ($arg1 eq "leave") {
-		$messageSender->sendGuildLeave($arg2);
+		$messageSender->sendGuildLeave($arg2, $guild{ID}, $charID);
 		message TF("Sending guild leave: %s\n", $arg2);
 
 	} elsif ($arg1 eq "break") {
@@ -2810,34 +3277,17 @@ sub cmdHelp {
 	my @unknown;
 	my @found;
 
-	my @commands = (@commands_req)? @commands_req : (sort keys %descriptions, grep { $customCommands{$_}->{desc} } keys %customCommands);
-
-#	my ($message,$cmd);
-
 	my $msg = center(T(" Available commands "), 79, '=') ."\n" unless @commands_req;
-	foreach my $switch (@commands) {
-		if ($descriptions{$switch}) {
-			if (ref($descriptions{$switch}) eq 'ARRAY') {
-				if (@commands_req) {
-					helpIndent($switch,$descriptions{$switch});
-				} else {
-					$msg .= sprintf("%-11s  %s\n",$switch, $descriptions{$switch}->[0]);
-				}
-			}
-			push @found, $switch;
-		} else {
-			push @unknown, $switch;
-		}
-	}
 
-	@commands = (@commands_req)? @commands_req : (sort keys %customCommands);
+	my @commands = (@commands_req)? @commands_req : (sort keys %commands);
+	
 	foreach my $switch (@commands) {
-		if ($customCommands{$switch}) {
-			if (ref($customCommands{$switch}{desc}) eq 'ARRAY') {
+		if ($commands{$switch}) {
+			if (ref($commands{$switch}{desc}) eq 'ARRAY') {
 				if (@commands_req) {
-					helpIndent($switch,$customCommands{$switch}{desc});
+					helpIndent($switch,$commands{$switch}{desc});
 				} else {
-					$msg .= sprintf("%-11s  %s\n",$switch, $customCommands{$switch}{desc}->[0]);
+					$msg .= sprintf("%-11s  %s\n",$switch, $commands{$switch}{desc}->[0]);
 				}
 			}
 			push @found, $switch;
@@ -3130,7 +3580,7 @@ sub cmdInventory_desc {
 		return;
 	}
 
-	printItemDesc($item->{nameID});
+	printItemDesc($item);
 }
 
 sub cmdItemList {
@@ -3668,19 +4118,17 @@ sub cmdParty {
 				}
 			}
 		} elsif ($arg1 eq "leader") {
+			my $found;
 			if ($arg2 eq "") {
 				error T("Syntax Error in function 'party leader' (Change Party Leader)\n" .
 					"Usage: party leader <party member>\n");
 			} elsif ($arg2 =~ /\D/ || $args =~ /".*"/) {
-				my $found;
 				foreach (@partyUsersID) {
 					if ($char->{'party'}{'users'}{$_}{'name'} eq $arg2) {
-						$messageSender->sendPartyLeader($_);
-						$found = 1;
+						$found = $_;
 						last;
 					}
 				}
-				
 				if (!$found) {
 					error TF("Error in function 'party leader' (Change Party Leader)\n" .
 						"Can't change party leader - member %s doesn't exist.\n", $arg2);
@@ -3690,8 +4138,13 @@ sub cmdParty {
 					error TF("Error in function 'party leader' (Change Party Leader)\n" .
 						"Can't change party leader - member %s doesn't exist.\n", $arg2);
 				} else {
-					$messageSender->sendPartyLeader($partyUsersID[$arg2]);
+					$found = $partyUsersID[$arg2];
 				}
+			}
+			if ($found && $found eq $accountID) {
+				warning T("Can't change party leader - you are already a party leader.\n");
+			} else {
+				$messageSender->sendPartyLeader($found);
 			}
 		}
 	} else {
@@ -3735,14 +4188,14 @@ sub cmdPet {
 		# todo: maybe make a match function for monsters?
 		if ($args[1] =~ /^\d+$/) {
 			if ($monstersID[$args[1]] eq "") {
-				error TF("Error in function 'pet capture|c' (Capture Pet)\n" .
+				error TF("Error in function 'pet [capture|c]' (Capture Pet)\n" .
 					"Monster %s does not exist.\n", $args[1]);
 			} else {
 				$messageSender->sendPetCapture($monstersID[$args[1]]);
 			}
 		} else {
 			error TF("Error in function 'pet [capture|c]' (Capture Pet)\n" .
-				"%s must be a monster index.\n", $args[1]);
+				"'%s' must be a monster index.\n", $args[1]);
 		}
 
 	} elsif ($args[0] eq "h" || $args[0] eq "hatch") {
@@ -3784,8 +4237,16 @@ sub cmdPet {
 	} elsif (($args[0] eq "n" || $args[0] eq "name") && $args[1]) {
 		$messageSender->sendPetName($args[1]);
 
+	} elsif (($args[0] eq "e" || $args[0] eq "emotion") && $args[1]) {
+		if ($args[1] =~ /^\d+$/) {
+		$messageSender->sendPetEmotion($args[1]);
+		} else {
+			error TF("Error in function 'pet [emotion|e] <number>' (Emotion Pet)\n" .
+				"'%s' must be an integer.\n", $args[1]);
+		}
+
 	} else {
-		message T("Usage: pet [capture|hatch|status|info|feed|performance|return|unequip|name <name>]\n"), "info";
+		message T("Usage: pet [capture <monster #> | hatch <item #> | status | info | feed | performance | return | unequip | name <name>] | emotion <number>\n"), "info";
 	}
 }
 
@@ -3944,7 +4405,7 @@ sub cmdPlayerList {
 		itemName({nameID => $player->{weapon}}),
 		itemName({nameID => $player->{shield}}),
 		$headTop, $headMid,
-			  $headLow, "$haircolors{$player->{hair_color}} ($player->{hair_color})",
+			  $headLow, $haircolors{$player->hairColor()} . " (" . $player->hairColor() . ")",
 			  $player->{walk_speed});
 		if ($player->{dead}) {
 			$msg .= T("Player is dead.\n");
@@ -4236,7 +4697,10 @@ sub cmdReloadCode2 {
 
 sub cmdRelog {
 	my (undef, $arg) = @_;
-	if (!$arg || $arg =~ /^\d+$/) {
+	#stay offline if arg is 0
+	if (defined $arg && $arg == 0) {
+		offlineMode();
+	} elsif (!$arg || $arg =~ /^\d+$/) {
 		@cmdQueueList = ();
 		$cmdQueue = 0;
 		relog($arg);
@@ -4619,7 +5083,7 @@ sub cmdStats {
 			$char->{'int'}, $char->{'int_bonus'}, $char->{'points_int'}, $char->{'critical'}, $char->{'attack_speed'},
 			$char->{'dex'}, $char->{'dex_bonus'}, $char->{'points_dex'}, $char->{'points_free'},
 			$char->{'luk'}, $char->{'luk_bonus'}, $char->{'points_luk'}, $guildName,
-			"$haircolors{$char->{hair_color}} ($char->{hair_color})"]);
+			$haircolors{$char->hairColor()} . " (" . $char->hairColor() . ")"]);
 
 		$msg .= T("You are sitting.\n") if $char->{sitting};
 		$msg .= ('-'x44) . "\n";
@@ -4713,14 +5177,21 @@ sub cmdStorage {
 			cmdStorage_desc($items);
 		} elsif (($switch =~ /^(add|addfromcart|get|gettocart)$/ && ($items || $args =~ /$switch 0/)) || $switch eq 'close') {
 			if ($char->storage->isReady()) {
+				my ( $name, $amount );
+				if ( $items =~ /^[^"'].* .+$/ ) {
+					# Backwards compatibility: "storage add Empty Bottle 1" still works.
+					( $name, $amount ) = $items =~ /^(.*?)(?: (\d+))?$/;
+				} else {
+					( $name, $amount ) = parseArgs( $items );
+				}
 				if ($switch eq 'add') {
-					cmdStorage_add($items);
+					cmdStorage_add($name, $amount);
 				} elsif ($switch eq 'addfromcart') {
-					cmdStorage_addfromcart($items);
+					cmdStorage_addfromcart($name, $amount);
 				} elsif ($switch eq 'get') {
-					cmdStorage_get($items);
+					cmdStorage_get($name, $amount);
 				} elsif ($switch eq 'gettocart') {
-					cmdStorage_gettocart($items);
+					cmdStorage_gettocart($name, $amount);
 				} elsif ($switch eq 'close') {
 					cmdStorage_close();
 				}
@@ -4744,15 +5215,8 @@ sub cmdStorage {
 }
 
 sub cmdStorage_add {
-	my $items = shift;
+	my ($name, $amount) = @_;
 
-	my ( $name, $amount );
-	if ( $items =~ /^[^"'].* .+$/ ) {
-		# Backwards compatibility: "storage add Empty Bottle 1" still works.
-		( $name, $amount ) = $items =~ /^(.*?)(?: (\d+))?$/;
-	} else {
-		( $name, $amount ) = parseArgs( $items );
-	}
 	my @items = $char->inventory->getMultiple( $name );
 	if ( !@items ) {
 		error TF( "Inventory item '%s' does not exist.\n", $name );
@@ -4763,20 +5227,13 @@ sub cmdStorage_add {
 }
 
 sub cmdStorage_addfromcart {
-	my $items = shift;
+	my ($name, $amount) = @_;
 
 	if (!$char->cart->isReady) {
 		error T("Error in function 'storage_gettocart' (Cart Management)\nYou do not have a cart.\n");
 		return;
 	}
-
-	my ( $name, $amount );
-	if ( $items =~ /^[^"'].* .+$/ ) {
-		# Backwards compatibility: "storage addfromcart Empty Bottle 1" still works.
-		( $name, $amount ) = $items =~ /^(.*?)(?: (\d+))?$/;
-	} else {
-		( $name, $amount ) = parseArgs( $items );
-	}
+	
 	my @items = $char->cart->getMultiple( $name );
 	if ( !@items ) {
 		error TF( "Cart item '%s' does not exist.\n", $name );
@@ -4787,15 +5244,8 @@ sub cmdStorage_addfromcart {
 }
 
 sub cmdStorage_get {
-	my $items = shift;
-
-	my ( $name, $amount );
-	if ( $items =~ /^[^"'].* .+$/ ) {
-		# Backwards compatibility: "storage get Empty Bottle 1" still works.
-		( $name, $amount ) = $items =~ /^(.*?)(?: (\d+))?$/;
-	} else {
-		( $name, $amount ) = parseArgs( $items );
-	}
+	my ($name, $amount) = @_;
+	
 	my @items = $char->storage->getMultiple( $name );
 	if ( !@items ) {
 		error TF( "Storage item '%s' does not exist.\n", $name );
@@ -4806,20 +5256,13 @@ sub cmdStorage_get {
 }
 
 sub cmdStorage_gettocart {
-	my $items = shift;
+	my ($name, $amount) = @_;
 
 	if ( !$char->cart->isReady ) {
 		error T( "Error in function 'storage_gettocart' (Cart Management)\nYou do not have a cart.\n" );
 		return;
 	}
 
-	my ( $name, $amount );
-	if ( $items =~ /^[^"'].* .+$/ ) {
-		# Backwards compatibility: "storage get Empty Bottle 1" still works.
-		( $name, $amount ) = $items =~ /^(.*?)(?: (\d+))?$/;
-	} else {
-		( $name, $amount ) = parseArgs( $items );
-	}
 	my @items = $char->storage->getMultiple( $name );
 	if ( !@items ) {
 		error TF( "Storage item '%s' does not exist.\n", $name );
@@ -4844,7 +5287,7 @@ sub cmdStorage_desc {
 		error TF("Error in function 'storage desc' (Show Storage Item Description)\n" .
 			"Storage Item %s does not exist.\n", $items);
 	} else {
-		printItemDesc($item->{nameID});
+		printItemDesc($item);
 	}
 }
 
@@ -4873,7 +5316,7 @@ sub cmdStore {
 		error TF("Error in function 'store desc' (Store Item Description)\n" .
 			"Store item %s does not exist\n", $arg2);
 	} elsif ($arg1 eq "desc" && $arg2 =~ /\d+/) {
-		printItemDesc($storeList->get($arg2)->{nameID});
+		printItemDesc($storeList->get($arg2));
 
 	} else {
 		error T("Syntax Error in function 'store' (Store Functions)\n" .
@@ -5597,7 +6040,8 @@ sub cmdBuyer {
 		if ($arg3 <= 0) {
 			$arg3 = 1;
 		}
-		$messageSender->sendBuyBulkBuyer($buyerID, [{itemIndex => $arg2, itemID => $buyerItemList[$arg2]->{nameID}, amount => $arg3}], $buyingStoreID);
+		my $item = $char->inventory->get($arg2);
+		$messageSender->sendBuyBulkBuyer($buyerID, [{ID => $item->{ID}, itemID => $item->{nameID}, amount => $arg3}], $buyingStoreID);
 	}
 }
 
@@ -6240,27 +6684,27 @@ sub cmdRodex {
 
 	if ($arg1 eq 'open') {
 		if (defined $rodexList) {
-			error "Your rodex mail box is already opened.\n";
+			error T("Your rodex mail box is already opened.\n");
 			return;
 		}
-		message "Sending request to open rodex mailbox.\n";
+		message T("Sending request to open rodex mailbox.\n");
 		$messageSender->rodex_open_mailbox(0,0,0);
 	
 	} elsif ($arg1 eq 'close') {
 		if (!defined $rodexList) {
-			error "Your rodex mail box is closed.\n";
+			error T("Your rodex mail box is closed.\n");
 			return;
 		}
-		message "Your rodex mail box has been closed.\n";
+		message T("Your rodex mail box has been closed.\n");
 		$messageSender->rodex_close_mailbox();
 		
 	} elsif ($arg1 eq 'list') {
 		if (!defined $rodexList) {
-			error "Your rodex mail box is closed";
+			error T("Your rodex mail box is closed.\n");
 			return;
 			
 		} elsif (!$rodexList) {
-			message "Your rodex mail box is empty.\n";
+			message T("Your rodex mail box is empty.\n");
 			return;
 		}
 		my $msg .= center(" " . "Rodex Mail List" . " ", 79, '-') . "\n";
@@ -6275,7 +6719,7 @@ sub cmdRodex {
 		
 	} elsif ($arg1 eq 'refresh') {
 		if (!defined $rodexList) {
-			error "Your rodex mail box is closed";
+			error T("Your rodex mail box is closed.\n");
 			return;
 		}
 		
@@ -6283,16 +6727,16 @@ sub cmdRodex {
 		
 	} elsif ($arg1 eq 'read') {
 		if (!defined $rodexList) {
-			error "Your rodex mail box is closed";
+			error T("Your rodex mail box is closed.\n");
 			return;
 			
 		} elsif ($arg2 eq "") {
 			error T("Syntax Error in function 'rodex read' (Read rodex mail)\n" .
-				"Usage: rodex read <mail id>\n");
+				"Usage: rodex read <mail_id>\n");
 			return;
 			
 		} elsif (!exists $rodexList->{mails}{$arg2}) {
-			error "Mail of id $arg2 doesn't exist.\n";
+			error TF("Mail of id %d doesn't exist.\n", $arg2);
 			return;
 		}
 		
@@ -6300,64 +6744,64 @@ sub cmdRodex {
 		
 	} elsif ($arg1 eq 'write') {
 		if (!defined $rodexList) {
-			error "Your rodex mail box is closed";
+			error T("Your rodex mail box is closed.\n");
 			return;
 			
 		} elsif (defined $rodexWrite) {
-			error "You are already writing a rodex mail.\n";
+			error T("You are already writing a rodex mail.\n");
 			return;
 			
 		} elsif ($arg2 eq "") {
 			error T("Syntax Error in function 'rodex write' (Start writting a rodex mail)\n" .
-				"Usage: rodex write <player name>\n");
+				"Usage: rodex write <player_name>\n");
 			return;
 		}
 		
-		message "Opening rodex mail write box.\n";
+		message T("Opening rodex mail write box.\n");
 		$messageSender->rodex_open_write_mail($arg2);
 		
 	} elsif ($arg1 eq 'cancel') {
 		if (!defined $rodexList) {
-			error "Your rodex mail box is closed";
+			error T("Your rodex mail box is closed.\n");
 			return;
 			
 		} elsif (!defined $rodexWrite) {
-			error "You are not writing a rodex mail.\n";
+			error T("You are not writing a rodex mail.\n");
 			return;
 		}
 		
-		message "Closing rodex mail write box.\n";
+		message T("Closing rodex mail write box.\n");
 		$messageSender->rodex_cancel_write_mail();
 		
 	} elsif ($arg1 eq 'settarget') {
 		if (!defined $rodexList) {
-			error "Your rodex mail box is closed";
+			error T("Your rodex mail box is closed.\n");
 			return;
 			
 		} elsif (!defined $rodexWrite) {
-			error "You are not writing a rodex mail.\n";
+			error T("You are not writing a rodex mail.\n");
 			return;
 			
 		} elsif (exists $rodexWrite->{target}) {
-			error "You have already set the mail target.\n";
+			error T("You have already set the mail target.\n");
 			return;
 			
 		} elsif ($arg2 eq "") {
 			error T("Syntax Error in function 'rodex settarget' (Set target of rodex mail)\n" .
-				"Usage: rodex settarget <player name>\n");
+				"Usage: rodex settarget <player_name>\n");
 			return;
 		}
 		
-		message "Setting target of rodex mail to '".$arg2."'.\n";
+		message TF("Setting target of rodex mail to '%s'.\n", $arg2);
 		$messageSender->rodex_checkname($arg2);
 		
 	} elsif ($arg1 eq 'itemslist') {
 		if (!defined $rodexList) {
-			error "Your rodex mail box is closed";
+			error T("Your rodex mail box is closed.\n");
 			return;
 			
 		} elsif (!defined $rodexWrite) {
-			error "You are not writing a rodex mail.\n";
+			error T("You are not writing a rodex mail.\n");
 			return;
 			
 		}
@@ -6416,15 +6860,16 @@ sub cmdRodex {
 				"@<<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<",
 				[$index, $display]);
 		}
+		$msg .= sprintf("%s\n", ('-'x50));
 		message $msg, "list";
 		
 	} elsif ($arg1 eq 'settitle') {
 		if (!defined $rodexList) {
-			error "Your rodex mail box is closed";
+			error T("Your rodex mail box is closed.\n");
 			return;
 			
 		} elsif (!defined $rodexWrite) {
-			error "You are not writing a rodex mail.\n";
+			error T("You are not writing a rodex mail.\n");
 			return;
 			
 		} elsif ($arg2 eq "") {
@@ -6434,20 +6879,20 @@ sub cmdRodex {
 		}
 		
 		if (exists $rodexWrite->{title}) {
-			message "Changed the rodex mail message title to '".$arg2."'.\n";
+			message TF("Changed the rodex mail message title to '%s'.\n", $arg2);
 		} else {
-			message "Set the rodex mail message title to '".$arg2."'.\n";
+			message TF("Set the rodex mail message title to '%s'.\n", $arg2);
 		}
 		
 		$rodexWrite->{title} = $arg2;
 		
 	} elsif ($arg1 eq 'setbody') {
 		if (!defined $rodexList) {
-			error "Your rodex mail box is closed";
+			error T("Your rodex mail box is closed.\n");
 			return;
 			
 		} elsif (!defined $rodexWrite) {
-			error "You are not writing a rodex mail.\n";
+			error T("You are not writing a rodex mail.\n");
 			return;
 			
 		} elsif ($arg2 eq "") {
@@ -6457,57 +6902,57 @@ sub cmdRodex {
 		}
 		
 		if (exists $rodexWrite->{body}) {
-			message "Changed the rodex mail message body to '".$arg2."'.\n";
+			message TF("Changed the rodex mail message body to '%s'.\n", $arg2);
 		} else {
-			message "Set the rodex mail message body to '".$arg2."'.\n";
+			message TF("Set the rodex mail message body to '%s'.\n", $arg2);
 		}
 		
 		$rodexWrite->{body} = $arg2;
 		
 	} elsif ($arg1 eq 'setzeny') {
 		if (!defined $rodexList) {
-			error "Your rodex mail box is closed";
+			error T("Your rodex mail box is closed.\n");
 			return;
 			
 		} elsif (!defined $rodexWrite) {
-			error "You are not writing a rodex mail.\n";
+			error T("You are not writing a rodex mail.\n");
 			return;
 			
 		} elsif ($arg2 eq "" || $arg2 !~ /\d+/) {
 			error T("Syntax Error in function 'rodex setzeny' (Set zeny of rodex mail)\n" .
-				"Usage: rodex setzeny <zeny amount>\n");
+				"Usage: rodex setzeny <zeny_amount>\n");
 			return;
 		} elsif ($arg2 > $char->{zeny}) {
-			error "You can't add more zeny than you have to the rodex mail.\n";
+			error T("You can't add more zeny than you have to the rodex mail.\n");
 			return;
 		}
 		
 		if (exists $rodexWrite->{zeny}) {
-			message "Changed the rodex mail message zeny to '".$arg2."'.\n";
+			message TF("Changed the rodex mail message zeny to '%d'.\n", $arg2);
 		} else {
-			message "Set the rodex mail message zeny to '".$arg2."'.\n";
+			message TF("Set the rodex mail message zeny to '%d'.\n", $arg2);
 		}
 		
 		$rodexWrite->{zeny} = $arg2;
 		
 	} elsif ($arg1 eq 'add') {
 		if (!defined $rodexList) {
-			error "Your rodex mail box is closed";
+			error T("Your rodex mail box is closed.\n");
 			return;
 			
 		} elsif (!defined $rodexWrite) {
-			error "You are not writing a rodex mail.\n";
+			error T("You are not writing a rodex mail.\n");
 			return;
 			
 		} elsif ($arg2 eq "") {
 			error T("Syntax Error in function 'rodex add' (Add item to rodex mail)\n" .
-				"Usage: rodex add <item>\n");
+				"Usage: rodex add <item #>\n");
 			return;
 		}
 		
 		my $max_items = $config{rodexMaxItems} || 5;
 		if ($rodexWrite->{items}->size >= $max_items) {
-			error T("You can't add any more items to the rodex mail\n");
+			error T("You can't add any more items to the rodex mail.\n");
 			return;
 		}
 		
@@ -6537,21 +6982,21 @@ sub cmdRodex {
 			}
 		}
 		
-		message "Adding amount ".$amount." of item ".$item." to rodex mail.\n";
+		message TF("Adding amount %d of item %s to rodex mail.\n", $amount, $item);
 		$messageSender->rodex_add_item($item->{ID}, $amount);
 		
 	} elsif ($arg1 eq 'remove') {
 		if (!defined $rodexList) {
-			error "Your rodex mail box is closed";
+			error T("Your rodex mail box is closed.\n");
 			return;
 			
 		} elsif (!defined $rodexWrite) {
-			error "You are not writing a rodex mail.\n";
+			error T("You are not writing a rodex mail.\n");
 			return;
 			
 		} elsif ($arg2 eq "") {
 			error T("Syntax Error in function 'rodex remove' (Remove item from rodex mail)\n" .
-				"Usage: rodex remove <item>\n");
+				"Usage: rodex remove <item #>\n");
 			return;
 		}
 		
@@ -6568,16 +7013,16 @@ sub cmdRodex {
 			$amount = $item->{amount};
 		}
 		
-		message "Removing amount ".$amount." of item ".$item." from rodex mail.\n";
+		message TF("Removing amount %d of item %s from rodex mail.\n", $amount, $item);
 		$messageSender->rodex_remove_item($item->{ID}, $amount);
 		
 	} elsif ($arg1 eq 'send') {
 		if (!defined $rodexList) {
-			error "Your rodex mail box is closed";
+			error T("Your rodex mail box is closed.\n");
 			return;
 			
 		} elsif (!defined $rodexWrite) {
-			error "You are not writing a rodex mail.\n";
+			error T("You are not writing a rodex mail.\n");
 			return;
 			
 		} elsif (!exists $rodexWrite->{zeny} || !exists $rodexWrite->{body} || !exists $rodexWrite->{title} || !exists $rodexWrite->{target}) {
@@ -6592,75 +7037,75 @@ sub cmdRodex {
 		my $tax = ($zeny_tax + $items_tax);
 		
 		if (($rodexWrite->{zeny} + $tax) > $char->{zeny}) {
-			error "The current tax for this rodex mail is $tax, you don't have enough zeny to pay for it.\n";
+			error TF("The current tax for this rodex mail is %dz, you don't have enough zeny to pay for it.\n", $tax);
 			return;
 		}
 		
-		message "Sending rodex mail.\n";
+		message T("Sending rodex mail.\n");
 		$messageSender->rodex_send_mail();
 		
 	} elsif ($arg1 eq 'getitems') {
 		if (!defined $rodexList) {
-			error "Your rodex mail box is closed";
+			error T("Your rodex mail box is closed.\n");
 			return;
 			
 		} elsif (defined $rodexWrite) {
-			error "You are writing a rodex mail.\n";
+			error T("You are writing a rodex mail.\n");
 			return;
 			
 		} elsif (!exists $rodexList->{current_read}) {
-			error "You are not reading a rodex mail.\n";
+			error T("You are not reading a rodex mail.\n");
 			return;
 			
 		} elsif (scalar @{$rodexList->{mails}{$rodexList->{current_read}}{items}} == 0) {
-			error "The current rodex mail has no items.\n";
+			error T("The current rodex mail has no items.\n");
 			return;
 		}
 		
-		message "Requesting items of current rodex mail.\n";
+		message T("Requesting items of current rodex mail.\n");
 		$messageSender->rodex_request_items($rodexList->{current_read}, 0, 0);
 		
 	} elsif ($arg1 eq 'getzeny') {
 		if (!defined $rodexList) {
-			error "Your rodex mail box is closed";
+			error T("Your rodex mail box is closed.\n");
 			return;
 			
 		} elsif (defined $rodexWrite) {
-			error "You are writing a rodex mail.\n";
+			error T("You are writing a rodex mail.\n");
 			return;
 			
 		} elsif (!exists $rodexList->{current_read}) {
-			error "You are not reading a rodex mail.\n";
+			error T("You are not reading a rodex mail.\n");
 			return;
 			
 		} elsif ($rodexList->{mails}{$rodexList->{current_read}}{zeny1} == 0) {
-			error "The current rodex mail has no zeny.\n";
+			error T("The current rodex mail has no zeny.\n");
 			return;
 		}
 		
-		message "Requesting zeny of current rodex mail.\n";
+		message T("Requesting zeny of current rodex mail.\n");
 		$messageSender->rodex_request_zeny($rodexList->{current_read}, 0, 0);
 		
 	} elsif ($arg1 eq 'nextpage') {
 		if (!defined $rodexList) {
-			error "Your rodex mail box is closed";
+			error T("Your rodex mail box is closed.\n");
 			return;
 			
 		} elsif (defined $rodexWrite) {
-			error "You are writing a rodex mail.\n";
+			error T("You are writing a rodex mail.\n");
 			return;
 			
 		} elsif (exists $rodexList->{last_page}) {
-			error "You have already reached the last rodex mail page.\n";
+			error T("You have already reached the last rodex mail page.\n");
 			return;
 		}
 		
-		message "Requesting the next page of rodex mail.\n";
+		message T("Requesting the next page of rodex mail.\n");
 		$messageSender->rodex_next_maillist(0, $rodexList->{current_page_last_mailID}, 0);
 		
 	} elsif ($arg1 eq 'maillist') {
 		if (!defined $rodexList) {
-			error "Your rodex mail box is closed";
+			error T("Your rodex mail box is closed.\n");
 			return;
 		}
 		
@@ -6689,16 +7134,16 @@ sub cmdRodex {
 		
 	} elsif ($arg1 eq 'delete') {
 		if (!defined $rodexList) {
-			error "Your rodex mail box is closed";
+			error T("Your rodex mail box is closed.\n");
 			return;
 			
 		} elsif ($arg2 eq "") {
 			error T("Syntax Error in function 'rodex delete' (Delete rodex mail)\n" .
-				"Usage: rodex delete <mail id>\n");
+				"Usage: rodex delete <mail_id>\n");
 			return;
 			
 		} elsif (!exists $rodexList->{mails}{$arg2}) {
-			error "Mail of id $arg2 doesn't exist.\n";
+			error TF("Mail of id %d doesn't exist.\n", $arg2);
 			return;
 		}
 		
@@ -6780,8 +7225,8 @@ sub cmdExchangeItem {
 				} elsif ($item->{equipped} != 0) {
 					warning TF("Equipped item was selected %s (%d)!\n", $item->{name}, $invIndex);
 				} else {
-					#message TF("Selected: %dx %s\n", $amt, $item->{name});
-					push(@items,{itemIndex => $item->{index}, amount => $amt, itemName => $item->{name}});
+					#message TF("Selected: %dx %s invIndex:%d binID:%d\n", $amt, $item->{name}, $invIndex, unpack 'v', (unpack 'v', $item->{ID}));
+					push(@items,{itemIndex => (unpack 'v', $item->{ID}), amount => $amt, itemName => $item->{name}});
 				}
 			} else {
 				warning TF("Item in index '%d' is not exists.\n", $invIndex);
@@ -7159,8 +7604,8 @@ sub cmdSearchStore {
 		} elsif ($args[1] eq "exact") {
 			$searchMethod = \&itemNameToIDList;
 		} else {
-			error TF("Error in function 'searchstore search' (store search)\n" .
-					"Syntax: searchstore search [match|exact] [card <card name>] [price <min_price>..<max_price>] [sell|buy]\n", $args[1]);
+			error T("Error in function 'searchstore search' (store search)\n" .
+					"Syntax: searchstore search [match|exact] \"<item name>\" [card <card name>] [price <min_price>..<max_price>] [sell|buy]\n");
 			
 			return;
 		}
@@ -7188,11 +7633,6 @@ sub cmdSearchStore {
 			if ($args[5] eq "card") {
 				@cards = $searchMethod->($args[6]);
 			}
-		} else {
-			error TF("Error in function 'searchstore search' (store search)\n" .
-					"Syntax: searchstore search [match|exact] [card <card name>] [price <min_price>..<max_price>] [sell|buy]\n", $args[1]);
-			
-			return;
 		}
 		
 		if ($args[-1] eq "buy") {
@@ -7252,6 +7692,200 @@ sub cmdSearchStore {
 			"searchstore search [match|exact] \"<item name>\" [card \"<card name>\"] [price <min_price>..<max_price>] [sell|buy] : Searches for an item\n" .
 			"searchstore select <page #> <store #> : Selects a store\n" .
 			"searchstore buy [view|end|<item #> [<amount>]] : Buys from a store using Universal Catalog Gold\n");
+}
+
+sub cmdRevive {
+	my ($cmd, $args) = @_;
+	
+	if (!$net || $net->getState() != Network::IN_GAME) {
+		error TF("You must be logged in the game to use this command '%s'\n", $cmd);
+		return;
+	}
+	
+	if (!$char->{dead}) {
+		error TF("You must be dead to use this command '%s'\n", $cmd);
+		return;
+	}
+	
+	my @args = parseArgs($args);
+	my $item;
+	
+	if (scalar @args == 1) {
+		# User passed an item nameID
+		if ($args[0] =~ /^\d+$/) {
+			$item = $char->inventory->getByNameID($args[0]);
+		}
+		# User passed an item name
+		elsif ($args[0] ne "force") {
+			$item = $char->inventory->getByName($args[0]);
+		}
+	} elsif (scalar @args == 0) {
+		# Try to find Token Of Siegfried
+		$item = $char->inventory->getByNameID(7621);
+	} else {
+		error T("Error in 'revive' command (incorrect syntax)\n".
+				"revive [force|<item name>|<item ID>]\n");
+		return;
+	}
+	
+	if (!$item && $args[0] ne "force") {
+		error TF("Error in 'revive' command\n".
+				"Cannot use item %d in attempt to revive: item not found in inventory\n", $args[0]);
+		return;
+	}
+	
+	message TF("Trying to use item %s to self-revive\n", $item->name());
+	$messageSender->sendAutoRevive();
+}
+
+sub cmdCashShopBuy {
+	if (!$net || $net->getState() != Network::IN_GAME) {
+		error TF("You must be logged in the game to use this command '%s'\n", shift);
+		return;
+	}
+
+	if (!$cashList || $cashList->size < 1) {
+		error T("No cash shop info to buy\n");
+		return;
+	}
+
+	my (undef, $args) = @_;
+	my ($points, $items) = $args =~ /(\d+) (.*)/;
+	my @buylist;
+	my $cost_total = 0;
+	foreach (split /\,/, $items) {
+		my($index, $amount) = $_ =~ /^\s*(\d+)\s*(\d*)\s*$/;
+		if ($index eq "") {
+			error T("Syntax Error in function 'cashbuy' (Buy Cash Item)\n" .
+				"Usage: cashbuy <kafra_points> <item #> [<amount>][, <item #> [<amount>]]...\n");
+			return;
+    
+		} elsif ($amount eq "" || $amount <= 0) {
+			$amount = 1;
+		}
+		my $item = $cashList->get($index);
+		if (!$item) {
+			error TF("Error in function 'cashbuy' (Buy Cash Item)\n" .
+				"Cash Item at index %s does not exist.\n", $index);
+			return;
+		}
+		$cost_total += $item->{price};
+		push (@buylist,{itemID  => $item->{nameID}, amount => $amount});
+	}
+
+	if (!scalar @buylist) {
+		error T("Syntax Error in function 'cashbuy' (Buy Cash Item)\n" .
+			"Usage: cashbuy <kafra_points> <item #> [<amount>][, <item #> [<amount>]]...\n");
+		return;
+	}
+
+
+	# TODO: Add check to ignore the cost for private servers
+	#if (!$cashShop{points} || $cost_total > ($cashShop{points}->{cash} + $cashShop{points}->{kafra})) {
+	#	error TF("You dont' have enough cash and points to buy the items. %d > %d + %d\n", $cost_total, $cashShop{points}->{cash}, $cashShop{points}->{kafra});
+	#	return;
+	#}
+
+	message TF("Attempt to buy %d items from cash dealer\n", (scalar @buylist)), "info";
+	debug "Buying cash ".(scalar @buylist)." items: ".(join ', ', map {"".$_->{amount}."x ".$_->{itemID}.""} @buylist)."\n", "sendPacket";
+	$messageSender->sendCashShopBuy($points, \@buylist);
+}
+
+
+##
+# 'merge' Merge Item
+# @author [Cydh]
+##
+sub cmdMergeItem {
+	if (!$net || $net->getState() != Network::IN_GAME) {
+		error TF("You must be logged in the game to use this command '%s'\n", shift);
+		return;
+	}
+
+	if (not defined $mergeItemList) {
+		error T("You cannot use this command yet. Only available after talking with Mergician-like NPC!\n");
+		return;
+	}
+
+	my ($switch, $args) = @_;
+	my ($mode) = $args =~ /^(\w+)/;
+
+	if ($mode eq "" || $mode eq "list") {
+		my $title = TF("Available Items to merge");
+		my $msg = center(' '. $title . ' ', 50, '-') ."\n".
+					T ("#     Item Name\n");
+		foreach my $itemid (keys %{$mergeItemList}) {
+			$msg .= "-- ".$mergeItemList->{$itemid}->{name}." (".$itemid.") x ".scalar(@{$mergeItemList->{$itemid}->{list}})."\n";
+			foreach my $item (@{$mergeItemList->{$itemid}->{list}}) {
+				my $display = $item->{info}->{name}." x ".$item->{info}->{amount};
+				$msg .= swrite(
+					"@<<<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<",
+					[$item->{info}->{binID}, $display]);
+			}
+		}
+		$msg .= ('-'x50) . "\n";
+		message $msg, "list";
+		message T("To merge by item id: merge <itemid>\nOr one-by-one: merge <item #>,<item #>[,...]\n"), "info";
+		return;
+
+	} elsif ($mode eq "cancel") {
+		$messageSender->sendMergeItemCancel();
+		message TF("Merge Item is canceled.\n"), "info";
+		return;
+	}
+
+	# Merging process
+	my @list = split(/,/, $args);
+	my @items = ();
+	my $merge_itemid = 0;
+
+	@list = grep(!/^$/, @list); # Remove empty entries
+	foreach (@list) {
+		my ($id) = $_ =~ /^(\d+)/;
+		# Merge by item ID
+		if ((scalar @list) == 1 && $char->inventory->getByNameID($id)) {
+			debug "Merge item by item ID $id\n";
+			foreach my $item (@{$mergeItemList->{$id}->{list}}) {
+				push @items, $item;
+			}
+			last;
+		}
+
+		# User defined, however must be same item id
+		my $found = 0;
+		foreach my $itemid (keys %{$mergeItemList}) {
+			foreach my $item (@{$mergeItemList->{$itemid}->{list}}) {
+				if ($item->{info}->{binID} == $id) {
+					if ($merge_itemid > 0 && $merge_itemid != $item->{info}->{nameID}) {
+						error TF("Selected item is not same. Index:'%d' nameID:'%d' first selected:'%d'\n", $id, $item->{info}->{nameID}, $merge_itemid);
+						return;
+					} elsif ($merge_itemid == 0) {
+						$merge_itemid = $item->{info}->{nameID};
+					}
+					push @items, $item;
+					$found = 1;
+					last;
+				}
+			}
+			last if ($found == 1);
+		}
+		if ($found != 1) {
+			warning TF("Cannot find item with id '%d'.\n", $id);
+		}
+	}
+
+	if (@items > 1) {
+		my $num = scalar @items;
+		message T("======== Merge Item List ========\n");
+		map { message unpack("v2", $_->{ID})." ".$_->{info}->{name}." (".$_->{info}->{binID}.") x ".$_->{info}->{amount}."\n" } @items;
+		message "==============================\n";
+		$mergeItemList = {};
+		$messageSender->sendMergeItemRequest($num, \@items);
+		return;
+	}
+
+	error T("No item was selected or at least need 2 same items.\n");
+	error T("To merge by item id: merge <itemid>\nOr one-by-one: merge <item #>,<item #>[,...]\n"), "info";
 }
 
 1;
