@@ -52,6 +52,7 @@ sub parseMacroFile {
 			if ($key eq 'macro') {
 				%block = (name => $value, type => "macro");
 				if (exists $macro{$value}) {
+					#this is to detect macros that have same name
 					$macro{$value}{'duplicatedMacro'} = 1;
 				} else {
 					$macro{$value} = {};
@@ -90,11 +91,26 @@ sub parseMacroFile {
 				}
 			} else {
 				if (isNewCommandBlock($_)) {
-					$macroCountOpenBlock++
-				} elsif (!$macroCountOpenBlock && isNewWrongCommandBlock($_)) {
-					error "$file: ignoring '$_' in line $. (munch, munch, not found the open block command)\n";
+					$macroCountOpenBlock++;
+					
+				} elsif (!$macroCountOpenBlock && $_ =~ /^}\s*else\s*{$/) {
+					error "$file: ignoring '$_' inside macro ". $block->{'name'} . " (munch, munch, must exist an if or an elsif before else)\n";
 					next;
+					
+				} elsif (!$macroCountOpenBlock && $_ =~ /}\s*elsif.*{$/) {
+					error "$file: ignoring '$_' inside macro ". $block->{'name'} . " (munch, munch, must exist an if before elsif)\n";
+					next;
+					
+				} elsif (!$macroCountOpenBlock && $_ =~ /^case.*{$/) {
+					error "$file: ignoring '$_' inside macro ". $block->{'name'} . " (munch, munch, case blocks can only exist inside a switch block)\n";
+					next;
+					
+				} elsif (!$macroCountOpenBlock && $_ =~ /^else*{$/) {
+					error "$file: ignoring '$_' inside macro ". $block->{'name'} . " (munch, munch, this else is expected to exist inside a switch block)\n";
+					next;
+					
 				}
+				
 				push(@{$macro{$block{name}}{lines}}, $_);
 			}
 			
@@ -208,8 +224,8 @@ sub sub_execute {
 	eval($run); # cycle the macro sub between macros only
 	$run = "eval ".$run;
 	
-	# exporting sub to the &main::sub, becarefull on your sub name
-	# dont name your new sub equal to any &main::sub, you should take
+	# exporting sub to the &main::sub, be carefull on your sub name
+	# don't name your new sub equal to any &main::sub, you should take
 	# the risk yourself.
 	Commands::run($run);
 	
