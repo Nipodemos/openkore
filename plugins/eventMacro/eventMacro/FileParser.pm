@@ -94,19 +94,19 @@ sub parseMacroFile {
 					$macroCountOpenBlock++;
 					
 				} elsif (!$macroCountOpenBlock && $_ =~ /^}\s*else\s*{$/) {
-					error "$file: ignoring '$_' inside macro ". $block->{'name'} . " (munch, munch, must exist an if or an elsif before else)\n";
+					error "$file: ignoring '$_' inside macro ". $block{name} . " (munch, munch, must exist an if or an elsif before else)\n";
 					next;
 					
 				} elsif (!$macroCountOpenBlock && $_ =~ /}\s*elsif.*{$/) {
-					error "$file: ignoring '$_' inside macro ". $block->{'name'} . " (munch, munch, must exist an if before elsif)\n";
+					error "$file: ignoring '$_' inside macro ". $block{name} . " (munch, munch, must exist an if before elsif)\n";
 					next;
 					
 				} elsif (!$macroCountOpenBlock && $_ =~ /^case.*{$/) {
-					error "$file: ignoring '$_' inside macro ". $block->{'name'} . " (munch, munch, case blocks can only exist inside a switch block)\n";
+					error "$file: ignoring '$_' inside macro ". $block{name} . " (munch, munch, case blocks can only exist inside a switch block)\n";
 					next;
 					
 				} elsif (!$macroCountOpenBlock && $_ =~ /^else*{$/) {
-					error "$file: ignoring '$_' inside macro ". $block->{'name'} . " (munch, munch, this else is expected to exist inside a switch block)\n";
+					error "$file: ignoring '$_' inside macro ". $block{name} . " (munch, munch, this else is expected to exist inside a switch block)\n";
 					next;
 					
 				}
@@ -139,7 +139,7 @@ sub parseMacroFile {
 			} elsif (/call [^{]/ && !$macro{$block{loadmacro_name}}) {
 				my ($key, $value, $param) = $_ =~ /^(call)\s+(\S+)(?:\s*(.*))?/;
 				if (!defined $key || !defined $value) {
-					error "$file: ignoring '$_' in line $. (munch, munch, not a pair)\n";
+					error "$file: ignoring '$_' in line $. inside automacro ". $block{name} ." (munch, munch, not a pair)\n";
 					next;
 				}
 				#check if macro is being called with params or not
@@ -147,24 +147,40 @@ sub parseMacroFile {
 					$value = join (' ', $value,$param);
 				} 
 				push(@{$automacro{$block{name}}{parameters}}, {key => 'call', value => $value});
+				
 			} elsif ($_ eq "call {") {
 				$block{loadmacro} = 1;
-				$block{loadmacro_name} = "tempMacro".$tempmacro++;
+				$block{loadmacro_name} = "automacro_".$block{name}."_call_block";
 				push(@{$automacro{$block{name}}{parameters}}, {key => 'call', value => $block{loadmacro_name}});
 				$macro{$block{loadmacro_name}} = {}
+				
 			} elsif ($block{loadmacro}) {
 				if (isNewCommandBlock($_)) {
-					$macroCountOpenBlock++
-				} elsif (!$macroCountOpenBlock && isNewWrongCommandBlock($_)) {
-					error "$file: ignoring '$_' in line $. (munch, munch, not found the open block command)\n";
-					next
+					$macroCountOpenBlock++;
+					
+				} elsif (!$macroCountOpenBlock && $_ =~ /^}\s*else\s*{$/) {
+					error "$file: ignoring '$_' inside automacro ". $block{name} ." (munch, munch, must exist an if or an elsif before else)\n";
+					next;
+					
+				} elsif (!$macroCountOpenBlock && $_ =~ /}\s*elsif.*{$/) {
+					error "$file: ignoring '$_' inside automacro ". $block{name} ." (munch, munch, must exist an if before elsif)\n";
+					next;
+					
+				} elsif (!$macroCountOpenBlock && $_ =~ /^case.*{$/) {
+					error "$file: ignoring '$_' inside automacro ". $block{name} ." (munch, munch, case blocks can only exist inside a switch block)\n";
+					next;
+					
+				} elsif (!$macroCountOpenBlock && $_ =~ /^else*{$/) {
+					error "$file: ignoring '$_' inside automacro ". $block{name} ." (munch, munch, expected to exist only inside a switch block)\n";
+					next;
+					
 				}
 
 				push(@{$macro{$block{loadmacro_name}}{lines}}, $_);
 			} else {
 				my ($key, $value) = $_ =~ /^(.*?)\s+(.*)/;
 				if (!defined $key || !defined $value) {
-					error "$file: ignoring '$_' in line $. (munch, munch, not a pair)\n";
+					error "$file: ignoring '$_' in line $. inside automacro ". $block{name} ." (munch, munch, not a pair)\n";
 					next;
 				}
 				if (exists $parameters{$key}) {
@@ -210,7 +226,7 @@ sub parseMacroFile {
 	}
 	
 	if (%block) {
-		error TF( "%s: unclosed %s block '%s'\n", $file, $block{type}, $block{name} );
+		error "%s: unclosed %s block '%s'\n", $file, $block{type}, $block{name};
 		return 0;
 	}
 	return {macros => \%macro, automacros => \%automacro, subs => \@perl_name};
@@ -218,6 +234,8 @@ sub parseMacroFile {
 
 sub sub_execute {
 	return if $Settings::lockdown;
+	
+	message "[eventMacro] registering sub '".$name."'\n", "menu";
 	
 	my ($name, $arg) = @_;
 	my $run = "sub ".$name." {".$arg."}";
@@ -228,25 +246,13 @@ sub sub_execute {
 	# don't name your new sub equal to any &main::sub, you should take
 	# the risk yourself.
 	Commands::run($run);
-	
-	message "[eventMacro] registering sub '".$name."'.\n", "menu";
 }
 
 # check if on the line there commands that open new command blocks
 sub isNewCommandBlock {
 	my ($line) = @_;
 	
-	if ($line =~ /^(?:if|case|switch|else|while|foreach).*{$/) {
-		return 1;
-	} else {
-		return 0;
-	}
-}
-
-sub isNewWrongCommandBlock {
-	my ($line) = @_;
-	
-	if ($line =~ /^}\s*(?:else|elsif|case)\s*.*{$|^else.*{$/) {
+	if ($line =~ /^(?:if|case|switch|while|foreach).+{$/) {
 		return 1;
 	} else {
 		return 0;
