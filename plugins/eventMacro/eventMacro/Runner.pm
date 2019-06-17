@@ -20,7 +20,7 @@ use eventMacro::Core;
 use eventMacro::FileParser qw(isNewCommandBlock);
 use eventMacro::Utilities qw(cmpr getnpcID getItemIDs getItemPrice getStorageIDs getInventoryIDs getInventoryTypeIDs
 	getPlayerID getMonsterID getVenderID getRandom getRandomRange getInventoryAmount getCartAmount getShopAmount
-	getStorageAmount getVendAmount getConfig getWord q4rx q4rx2 getArgFromList getListLenght find_variable find_array_variable get_pattern get_key_or_index getQuestStatus
+	getStorageAmount getVendAmount getConfig getWord q4rx q4rx2 getArgFromList getListLenght get_pattern find_variable find_array_variable get_key_or_index getQuestStatus
 	find_hash_and_get_keys find_hash_and_get_values);
 use eventMacro::Automacro;
 
@@ -431,7 +431,7 @@ sub scanBlocks {
 	
 	for (my $line = 0; $line < @{$script}; $line++) {
 		if ($script->[$line] =~ /^(if|switch|while|case)\s+\(.*\)\s+{$/ ||
-			$script->[$line] =~ /^(else)\s+.*{$/ ||
+			$script->[$line] =~ /^(else)\s+{$/ ||
 			$script->[$line] =~ /^(foreach)\s+$general_variable_qr\s*\(.*\)\s+{$/
 		) {
 			push @$block_starts, { type => $1, start => $line };
@@ -443,8 +443,7 @@ sub scanBlocks {
 			$blocks->{start_to_end}{$block->{start}} = $block;
 		}
 	}
-	warning Dumper($blocks);
-	$blocks;
+	return $blocks;
 }
 
 # Decides what to do when we get to the end of a macro script
@@ -595,82 +594,46 @@ sub define_next_valid_command {
 				$self->error("foreach block must have a variable before parentheses");
 				return;
 			}
-			
 			if (!$insideParentheses) {
 				$self->error("foreach block must have an array inside parentheses");
 				return;
 			}
+			
 			#defining foreach_var (the variable that holds the array value on each loop)
 			my $var = find_variable($holderVar);
 			my $arrayVar = find_array_variable($insideParentheses);
-			if (@{$self->{foreach_block}} < 1) {
+			
+			if (!$var) {
+				$self->error("Could not define holderVar on foreach block") if !$var;
 				
+			} elsif ($arrayVar) {
+				$self->error("Could not define arrayVar on foreach block") if !$arrayVar;
+				
+			} elsif ($eventMacro->get_array_size($self->{foreach_block}{$self->line_index}{arrayVar}{real_name}) < 1) {
+				$self->error("Array is not defined or do not have elements in it");
+				delete($self->{foreach_block}{$self->line_index});
 			}
-			push @{$self->{foreach_block}}, {
+			return if (defined $self->error);
+			
+			#defining foreach_array (the array that the code is going to loop)
+			if (!exists $self->{foreach_block}{$self->line_index}) {
+				debug("Defining foreach block\n", 'eventMacro', 3);
+				$self->{foreach_block}{$self->line_index} = {
 				var => $var,
 				arrayVar => $arrayVar,
 				loop_index => 0
-			};
-			
-			
-			#defining foreach_array (the array that the code is going to loop)
-			$self->{foreach_block}{$self->line_index}{array} = $var;
-			
-			
-			if (!$self->{foreach_block}{$self->line_index}{array}) {
-				if ($var->{type} eq 'array') {
-				} else {
-					undef $self->{foreach_block}{$self->line_index};
-					
-				}
-			}
-			if (exists $self->{foreach_block}{$self->line_index}{loop_index}) {
-				$self->{foreach_block}{$self->line_index}{loop_index}++;
-			
-			} else {
-				$self->{foreach_block}{$self->line_index}{loop_index} = 0;
+				};
 			}
 			
-			if ($eventMacro->get_array_size($self->{foreach_block}{$self->line_index}{array}{real_name}) < 1) {
-				$self->error("Array is not defined or do not have elements in it");
-				undef $self->{foreach_block}{$self->line_index};
-			}
 			
-			if ($self->{foreach_block}{$self->line_index}{loop_index} >= $eventMacro->get_array_size($self->{foreach_block}{$self->line_index}{array}{real_name})) {
-				debug "[eventMacro] Foreach block done, cleaning block.\n", "eventMacro", 3;
-				undef $self->{foreach_block}{$self->line_index};
-				
-				my $block_count = 1;
-				CHECK_IF: while ($block_count > 0) {
-				
-					$self->next_line;
-					$self->define_current_line;
-					
-					if ($self->{finished}) {
-						$self->{finished} = 0;
-						$self->error("All blocks must be closed before the end of the macro)");
-						return;
-					}
-					
-					#Start of another if/switch/case/while block
-					if ( $self->{current_line} =~ /^(if|switch|case|while|else|foreach).*{$/ ) {
-						$block_count++;
-						
-					#End of an if block or start of else block
-					} elsif ($self->{current_line} eq '}') {
-						$block_count--;
-						
-					}
-					
-					debug "[eventMacro] Cleaning line '".$self->{current_line}."' inside 'foreach' block.\n", "eventMacro", 3;
-				}
-			} else {
-				debug("Defining foreach var\n", 'eventMacro', 3);
-				debug("loop index: $self->{foreach_block}{$self->line_index}{loop_index}\n");
+			#loop is not done yet, enter the foreach block
+			if ($self->{foreach_block}{$self->line_index}{loop_index} <= $eventMacro->get_array_size($arrayVar->{real_name}) -1) {
+				debug("Entering foreach block\n");
+				debug("Defining var with the array value\n", 'eventMacro', 3);
 				my $currentArrayValue = $eventMacro->get_var(
-					'accessed_array',                                            #type of variable
-					$self->{foreach_block}{$self->line_index}{array}{real_name}, #name of variable
-					$self->{foreach_block}{$self->line_index}{loop_index},       #complement
+					'accessed_array',                                               #type of variable
+					$self->{foreach_block}{$self->line_index}{arrayVar}{real_name}, #name of variable
+					$self->{foreach_block}{$self->line_index}{loop_index},          #complement
 				);
 				
 				$eventMacro->set_var(
@@ -680,10 +643,19 @@ sub define_next_valid_command {
 					undef,                                                     #check callbacks
 					$self->{foreach_block}{$self->line_index}{var}{complement} #complement of variable (accessed array/hash)
 				);
+					
+			#loop is over
+			} else {
+				debug "[eventMacro] Foreach block done, cleaning block.\n", "eventMacro", 3;
+				delete($self->{foreach_block}{$self->line_index});
+				
+				$self->line_index($self->{block}{start_to_end}{$self->line_index}{end});
 			}
 			
 			
 			$self->next_line;
+			$self->define_current_line;
+			
 		######################################
 		# Postfix 'if'
 		######################################
@@ -982,17 +954,17 @@ sub define_next_valid_command {
 		# End block of "if", "switch", "while" or "foreach"
 		######################################
 		} elsif ($self->{current_line} eq '}') {
-			debug "what is the type of block?: '" . $self->{block}{end_to_start}{$self->line_index}{type} . "'\n";
-			if ($self->{block}{end_to_start}{$self->line_index}{type} eq 'while') {
-				debug "[eventMacro] Script is the end of a 'while block', moving to its start.\n", "eventMacro", 3;
-				$self->line_index($self->{block}{end_to_start}{$self->line_index}{start});
+			
+			my $type_of_block = $self->{block}{end_to_start}{$self->line_index}{type};
 				
-			} elsif ($self->{block}{end_to_start}{$self->line_index}{type} eq 'foreach') {
-				debug "[eventMacro] Script is the end of a 'foreach block', moving to its start.\n", "eventMacro", 3;
-				$self->line_index($self->{block}{end_to_start}{$self->line_index}{start});
+			if ($type_of_block eq 'while' || $type_of_block eq 'foreach') {
+				my $start_line_index = $self->{block}{end_to_start}{$self->line_index}{start};
+				debug "[eventMacro] Script is the end of a '$type_of_block block', moving to its start (line $start_line_index).\n", "eventMacro", 3;
+				$self->{foreach_block}{$start_line_index}{loop_index}++ if $type_of_block eq 'foreach';
+				$self->line_index($start_line_index);
 				
 			} else {
-				debug "[eventMacro] Script is the end of a normal block (if or switch).\n", "eventMacro", 3;
+				debug "[eventMacro] Script is the end of a normal $type_of_block block.\n", "eventMacro", 3;
 				$self->next_line;
 			}
 		
@@ -2437,7 +2409,7 @@ sub parse_defined {
 		return;
 	
 	} elsif ($var->{type} ne 'accessed_hash' && $var->{type} ne 'accessed_array' && $var->{type} ne 'scalar') {
-		$self->error("defined function can only be used on scalars, hashes with keys or arrays with indexes, you trie to use it in a ".$var->{type});
+		$self->error("defined function can only be used on scalars, hashes with keys or arrays with indexes, you tried to use it in a ".$var->{type});
 		return;
 	}
 	
